@@ -1,28 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.push('/dashboard');
+    }
+  }, [session, status, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setError('');
+    
     // Validação simples local
     if (!email || !password) {
       setError('Preencha todos os campos.');
       return;
     }
-
-    // Aqui entraremos com autenticação real depois
-    if (email === 'admin@demo.com' && password === '123456') {
-      router.push('/dashboard');
-    } else {
-      setError('Credenciais inválidas.');
+    
+    try {
+      setIsLoading(true);
+      
+      // Use NextAuth signIn function
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+        callbackUrl: '/dashboard'
+      });
+      
+      if (result?.error) {
+        setError('Credenciais inválidas. Verifique seu email e senha.');
+      } else {
+        // Successful login, redirect to dashboard
+        router.push('/dashboard');
+        router.refresh(); // Refresh to update auth state
+      }
+    } catch (err) {
+      setError('Ocorreu um erro durante o login. Tente novamente.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -54,10 +83,22 @@ export default function LoginPage() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center"
+            disabled={isLoading}
           >
-            Entrar
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Entrando...
+              </>
+            ) : 'Entrar'}
           </button>
+          {status === 'loading' && (
+            <p className="text-center text-sm text-gray-500">Verificando autenticação...</p>
+          )}
         </form>
       </div>
     </main>

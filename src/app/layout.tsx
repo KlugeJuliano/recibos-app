@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { auth } from "@/app/auth";
 import Providers from "./providers";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 
 const geistSans = Geist({
@@ -37,7 +38,7 @@ export default async function RootLayout({
         <Providers session={session}>
           {children}
         </Providers>
-       
+        <SpeedInsights />
       </body>
     </html>
   );

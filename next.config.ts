@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/(.*)", // Aplica para todas as rotas
+        source: "/(.*)",
         headers: [
           {
             key: "X-Content-Type-Options",
@@ -20,7 +20,12 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; img-src * data: blob:; object-src 'none';",
+            value: `
+              default-src 'self';
+              script-src 'self' 'unsafe-inline' vercel-insights.com;
+              img-src * data: blob:;
+              object-src 'none';
+            `.replace(/\s{2,}/g, " ").trim(),
           },
         ],
       },

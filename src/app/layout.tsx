@@ -38,7 +38,7 @@ export default async function RootLayout({
         <Providers session={session}>
           {children}
         </Providers>
-        <SpeedInsights />
+       {/* <SpeedInsights />  */}
       </body>
     </html>
   );

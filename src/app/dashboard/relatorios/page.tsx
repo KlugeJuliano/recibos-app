@@ -4,8 +4,6 @@ import { useState } from 'react';
 
 const recibosExemplo = [
   { id: 1, cliente: 'João Silva', valor: 150.0, data: '2025-05-01' },
-  { id: 2, cliente: 'Maria Oliveira', valor: 200.0, data: '2025-05-02' },
-  { id: 3, cliente: 'Carlos Souza', valor: 120.0, data: '2025-05-03' },
 ];
 
 export default function RelatoriosPage() {

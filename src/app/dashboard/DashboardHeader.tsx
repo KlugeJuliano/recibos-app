@@ -7,6 +7,7 @@ type DashboardHeaderProps = {
   userRole: string;
 };
 
+
 export default function DashboardHeader({ userName, userRole }: DashboardHeaderProps) {
   return (
     <header className="bg-blue-600 text-white shadow-md">

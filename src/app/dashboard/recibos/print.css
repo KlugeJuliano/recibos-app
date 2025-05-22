@@ -1,0 +1,176 @@
+/* Print-specific styles for receipt component */
+
+@media print {
+  /* Basic page setup */
+  @page {
+    size: A4;
+    margin: 0.5cm;
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Hide elements that shouldn't be printed */
+  .print\:hidden,
+  button,
+  .hidden-print,
+  nav,
+  header,
+  footer,
+  .sidebar,
+  .navbar,
+  .app-header,
+  .menu,
+  .controls,
+  .pagination,
+  .actions-bar,
+  .toolbar {
+    display: none !important;
+  }
+  
+  /* Hide everything except the receipt modal */
+  body > *:not(.modal-container):not(.receipt-container),
+  .modal-backdrop,
+  .modal-overlay,
+  .modal-background {
+    display: none !important;
+  }
+  
+  /* Ensure content fits on the page */
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+  
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+  
+  .print\:bg-white,
+  .modal,
+  .modal-content,
+  .receipt-container,
+  .receipt {
+    background-color: white !important;
+  }
+  
+  /* Force modal to be visible, remove overlay effects */
+  .modal,
+  .modal-dialog,
+  .modal-content,
+  .receipt-container,
+  .receipt {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    padding: 0.5cm !important;
+    max-height: none !important;
+    max-width: none !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+    display: block !important;
+    z-index: 9999 !important;
+  }
+  
+  /* Adjust spacing for printed version */
+  .print\:mb-4 {
+    margin-bottom: 1rem !important;
+  }
+  
+  .print\:leading-7 {
+    line-height: 1.75rem !important;
+  }
+  
+  .print\:mt-8 {
+    margin-top: 2rem !important;
+  }
+  
+  .print\:mt-10 {
+    margin-top: 2.5rem !important;
+  }
+  
+  .print\:mt-12 {
+    margin-top: 3rem !important;
+  }
+  
+  .print\:mt-16 {
+    margin-top: 4rem !important;
+  }
+  
+  .print\:mb-10 {
+    margin-bottom: 2.5rem !important;
+  }
+  
+  .print\:mt-2 {
+    margin-top: 0.5rem !important;
+  }
+  
+  /* Ensure the document has clear sections */
+  hr, .border-t {
+    border-color: #000 !important;
+  }
+  
+  /* Make sure text is clearly readable */
+  p, span, strong {
+    color: #000 !important;
+  }
+  
+  /* Optimize links for print */
+  a {
+    text-decoration: none;
+    color: #000;
+  }
+  
+  /* Ensure the receipt looks like an official document */
+  .text-center {
+    text-align: center !important;
+  }
+  
+  /* Ensure the document fits on one page when possible */
+  .page-break {
+    page-break-after: always;
+  }
+  
+  /* For debugging page breaks */
+  .debug-print-boundary {
+    outline: 1px dashed red;
+  }
+  
+  /* Optimize receipt for printing */
+  .receipt-title {
+    font-size: 18pt !important;
+    font-weight: bold !important;
+    margin-bottom: 1cm !important;
+  }
+  
+  .receipt-content {
+    font-size: 11pt !important;
+  }
+  
+  .receipt-details {
+    margin: 0.5cm 0 !important;
+  }
+  
+  .receipt-signature {
+    margin-top: 2cm !important;
+  }
+  
+  /* Scale content to fit page if needed */
+  .receipt-container {
+    transform-origin: top left;
+    transform: scale(1);
+  }
+}

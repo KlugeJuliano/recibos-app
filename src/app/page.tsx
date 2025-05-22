@@ -36,15 +36,15 @@ export default function HomePage() {
         <h2 className="text-3xl font-semibold mb-10 text-gray-800">Por que usar nosso sistema?</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="p-6 bg-white rounded-xl shadow">
-            <h3 className="text-xl font-bold mb-2">Simples de Usar</h3>
+            <h3 className="text-xl font-bold mb-2 text-gray-500">Simples de Usar</h3>
             <p className="text-gray-600">Interface intuitiva para gerar e gerenciar recibos em segundos.</p>
           </div>
           <div className="p-6 bg-white rounded-xl shadow">
-            <h3 className="text-xl font-bold mb-2">Multi-lojas</h3>
+            <h3 className="text-xl font-bold mb-2 text-gray-500">Multi-lojas</h3>
             <p className="text-gray-600">Controle centralizado para múltiplas unidades com segurança.</p>
           </div>
           <div className="p-6 bg-white rounded-xl shadow">
-            <h3 className="text-xl font-bold mb-2">Relatórios Detalhados</h3>
+            <h3 className="text-xl font-bold mb-2 text-gray-500">Relatórios Detalhados</h3>
             <p className="text-gray-600">Acompanhe os dados de emissão em tempo real com filtros e exportação.</p>
           </div>
         </div>

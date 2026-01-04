@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Recibos } from '../../types';
 
 export default function RelatoriosPage() {
-  const [recibos, setRecibos] = useState([]);
+  const [recibos, setRecibos] = useState<Recibos[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRecibos = async () => {
@@ -22,7 +23,11 @@ export default function RelatoriosPage() {
         setError(null);
       } catch (err) {
         console.error("Erro ao buscar recibos:", err);
-        setError(err.message || 'Ocorreu um erro ao buscar os recibos');
+        if( err instanceof Error){
+          setError(err.message);
+        }else{
+          setError("Ocorreu erro ao buscar os recibos");
+        }
         setRecibos([]);
       } finally {
         setIsLoading(false);
@@ -83,9 +88,9 @@ export default function RelatoriosPage() {
               {recibos.map((recibo) => (
                 <tr key={recibo.id} className="border-t">
                   <td className="py-2 px-4 text-sm text-gray-700">{recibo.id}</td>
-                  <td className="py-2 px-4 text-sm text-gray-700">{recibo.cliente}</td>
+                  <td className="py-2 px-4 text-sm text-gray-700">{recibo.name}</td>
                   <td className="py-2 px-4 text-sm text-gray-700">{`R$ ${recibo.valor.toFixed(2)}`}</td>
-                  <td className="py-2 px-4 text-sm text-gray-700">{recibo.data}</td>
+                  <td className="py-2 px-4 text-sm text-gray-700">{recibo.dataRecibo}</td>
                 </tr>
               ))}
             </tbody>

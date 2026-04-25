@@ -14,6 +14,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('recibos')
     .select('*')
+    .eq('userId', user.id)
     .order('dataRecibo', { ascending: false });
 
   if (error) {
@@ -21,6 +22,37 @@ export async function GET() {
   }
 
   return Response.json(data ?? []);
+}
+
+function calculateValorPagamento(recibo: any) {
+  const {
+    horaInicio,
+    horaIntervalo,
+    horaVoltaIntervalo,
+    horaFinal,
+    valor
+  } = recibo;
+
+  if (!horaInicio || !horaFinal) return 0;
+
+  const toDate = (hora: string) => new Date(`1970-01-01T${hora}:00`);
+  const inicio = toDate(horaInicio);
+  const fim = toDate(horaFinal);
+
+  let horasTrabalhadas = 0;
+
+  if (horaIntervalo && horaVoltaIntervalo) {
+    const inicioIntervalo = toDate(horaIntervalo);
+    const voltaIntervalo = toDate(horaVoltaIntervalo);
+    const antesAlmoco = (inicioIntervalo.getTime() - inicio.getTime()) / 1000 / 60 / 60;
+    const depoisAlmoco = (fim.getTime() - voltaIntervalo.getTime()) / 1000 / 60 / 60;
+    horasTrabalhadas = antesAlmoco + depoisAlmoco;
+  } else {
+    horasTrabalhadas = (fim.getTime() - inicio.getTime()) / 1000 / 60 / 60;
+  }
+
+  const valorPorHora = Number(valor) / 8;
+  return Number((horasTrabalhadas * valorPorHora).toFixed(2));
 }
 
 export async function POST(request: Request) {
@@ -34,8 +66,11 @@ export async function POST(request: Request) {
   }
 
   const payload = await request.json();
-  let profile = null;
+  
+  // Recalcular valor no servidor para evitar manipulação do cliente
+  const valorPagamento = calculateValorPagamento(payload);
 
+  let profile = null;
   try {
     profile = await getUserProfile(supabase, user.id);
   } catch (error) {
@@ -48,6 +83,7 @@ export async function POST(request: Request) {
     userId: user.id,
     lojaId,
     loja_id: lojaId,
+    valorPagamento, // Sobrescreve com o valor calculado no servidor
   };
 
   if (!lojaId) {

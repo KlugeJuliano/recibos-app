@@ -21,10 +21,15 @@ export async function GET(_request: Request, { params }: Params) {
     return Response.json({ error: 'Nao autenticado.' }, { status: 401 });
   }
 
-  const { data, error } = await supabase.from('recibos').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('recibos')
+    .select('*')
+    .eq('id', id)
+    .eq('userId', user.id) // Validação de propriedade
+    .single();
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 404 });
+    return Response.json({ error: 'Recibo não encontrado ou acesso negado.' }, { status: 404 });
   }
 
   return Response.json(data);
@@ -39,10 +44,18 @@ export async function PUT(request: Request, { params }: Params) {
   }
 
   const payload = await request.json();
-  const { data, error } = await supabase.from('recibos').update(payload).eq('id', id).select().single();
+  
+  // No PUT, garantimos que apenas o dono pode atualizar
+  const { data, error } = await supabase
+    .from('recibos')
+    .update(payload)
+    .eq('id', id)
+    .eq('userId', user.id) // Validação de propriedade
+    .select()
+    .single();
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: 'Erro ao atualizar ou acesso negado.' }, { status: 500 });
   }
 
   return Response.json(data);
@@ -56,10 +69,14 @@ export async function DELETE(_request: Request, { params }: Params) {
     return Response.json({ error: 'Nao autenticado.' }, { status: 401 });
   }
 
-  const { error } = await supabase.from('recibos').delete().eq('id', id);
+  const { error } = await supabase
+    .from('recibos')
+    .delete()
+    .eq('id', id)
+    .eq('userId', user.id); // Validação de propriedade
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: 'Erro ao excluir ou acesso negado.' }, { status: 500 });
   }
 
   return Response.json({ ok: true });

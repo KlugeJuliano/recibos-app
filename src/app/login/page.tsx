@@ -2,8 +2,8 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
-import type { User } from '@supabase/supabase-js';
+import { createClient, isSupabaseConfigured } from '@/utils/supabase/client';
+import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { ensureUserProfile } from '@/utils/supabase/profile';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,7 +11,6 @@ import Image from 'next/image';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -27,7 +26,11 @@ function LoginForm() {
     }
   }, [searchParams]);
 
-  const syncUserProfile = async (user: User | null, fallbackName?: string) => {
+  const syncUserProfile = async (
+    supabase: SupabaseClient,
+    user: User | null,
+    fallbackName?: string
+  ) => {
     if (!user) {
       return;
     }
@@ -51,9 +54,15 @@ function LoginForm() {
       setError('Preencha todos os campos obrigatórios.');
       return;
     }
+
+    if (!isSupabaseConfigured) {
+      setError('O login ainda não está configurado neste ambiente. Defina as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY na Vercel e faça um novo deploy.');
+      return;
+    }
     
     try {
       setIsLoading(true);
+      const supabase = createClient();
       
       if (isSignUp) {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -70,7 +79,7 @@ function LoginForm() {
           setError(signUpError.message);
         } else {
           if (data.session) {
-            await syncUserProfile(data.user, companyName);
+            await syncUserProfile(supabase, data.user, companyName);
             router.push('/dashboard');
             router.refresh();
           } else {
@@ -86,7 +95,7 @@ function LoginForm() {
         if (loginError) {
           setError('Credenciais inválidas. Verifique seu email e senha.');
         } else {
-          await syncUserProfile(data.user);
+          await syncUserProfile(supabase, data.user);
           router.push('/dashboard');
           router.refresh();
         }

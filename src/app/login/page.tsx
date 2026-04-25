@@ -88,7 +88,7 @@ function LoginForm() {
     }
 
     if (!isSupabaseConfigured) {
-      setError('O login ainda não está configurado neste ambiente. Defina as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY na Vercel e faça um novo deploy.');
+      setError('O serviço de autenticação está temporariamente indisponível. Por favor, tente novamente mais tarde.');
       return;
     }
     

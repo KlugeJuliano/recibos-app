@@ -96,6 +96,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase
     .from('recibos')
     .select('*')
+    .eq('userId', user.id) // Validação de propriedade
     .order('dataRecibo', { ascending: false });
 
   if (error) {

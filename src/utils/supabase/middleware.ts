@@ -48,5 +48,20 @@ export async function supabaseMiddleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Proteção adicional para rotas de admin
+  if (user && req.nextUrl.pathname.startsWith('/dashboard/admin')) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profile?.role !== 'admin') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return response
 }

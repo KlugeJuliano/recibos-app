@@ -17,10 +17,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return Response.json({ error: 'Nao autenticado.' }, { status: 401 });
   }
 
-  const { data, error } = await supabase.from('recibos').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('recibos')
+    .select('*')
+    .eq('id', id)
+    .eq('userId', user.id) // Validação de propriedade
+    .single();
 
   if (error || !data) {
-    return Response.json({ error: error?.message ?? 'Recibo nao encontrado.' }, { status: 404 });
+    return Response.json({ error: 'Recibo nao encontrado ou acesso negado.' }, { status: 404 });
   }
 
   const document = React.createElement(ReceiptPdf, { recibo: data as ReceiptPdfRecord }) as unknown as Parameters<typeof renderToBuffer>[0];

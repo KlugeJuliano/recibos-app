@@ -40,7 +40,26 @@ export default function RelatoriosPage() {
   return (
     <main className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-5xl mx-auto bg-white rounded-xl shadow p-6">
-        <h1 className="text-3xl font-bold text-green-700 mb-6">Relatórios de Recibos</h1>
+        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-green-700">Relatórios de Recibos</h1>
+            <p className="mt-1 text-sm text-gray-500">Exporte os dados em PDF ou CSV.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <a
+              href="/api/relatorios/exportar?format=pdf"
+              className="rounded-lg bg-green-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-green-800"
+            >
+              Exportar PDF
+            </a>
+            <a
+              href="/api/relatorios/exportar?format=csv"
+              className="rounded-lg border border-green-200 px-4 py-2 text-center text-sm font-semibold text-green-700 hover:bg-green-50"
+            >
+              Exportar CSV
+            </a>
+          </div>
+        </div>
 
         {isLoading && (
           <div className="flex justify-center items-center py-12">
@@ -82,6 +101,7 @@ export default function RelatoriosPage() {
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Cliente</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Valor</th>
                 <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Data</th>
+                <th className="py-2 px-4 text-left text-sm font-semibold text-gray-700">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -91,15 +111,19 @@ export default function RelatoriosPage() {
                   <td className="py-2 px-4 text-sm text-gray-700">{recibo.name}</td>
                   <td className="py-2 px-4 text-sm text-gray-700">{`R$ ${recibo.valor.toFixed(2)}`}</td>
                   <td className="py-2 px-4 text-sm text-gray-700">{recibo.dataRecibo}</td>
+                  <td className="py-2 px-4 text-sm">
+                    <a
+                      href={`/api/recibos/${recibo.id}/pdf`}
+                      className="font-semibold text-blue-700 hover:text-blue-900"
+                    >
+                      PDF
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-
-        <div className="mt-6 text-sm text-gray-500 text-center">
-          ⚙️ Funcionalidades de filtro e exportação em breve.
-        </div>
       </div>
     </main>
   );

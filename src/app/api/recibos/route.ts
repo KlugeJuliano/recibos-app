@@ -41,14 +41,16 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Não foi possível carregar o perfil do usuário:', error);
   }
+  const lojaId = payload.lojaId || payload.loja_id || profile?.lojaId;
   const recibo = {
     ...payload,
     id: payload.id || crypto.randomUUID(),
     userId: user.id,
-    lojaId: payload.lojaId || profile?.lojaId,
+    lojaId,
+    loja_id: lojaId,
   };
 
-  if (!recibo.lojaId) {
+  if (!lojaId) {
     return Response.json(
       { error: 'Seu usuário precisa estar vinculado a uma loja para emitir recibos.' },
       { status: 400 }

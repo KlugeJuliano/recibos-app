@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/utils/supabase/client';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import { ensureUserProfile } from '@/utils/supabase/profile';
+import { ensureUserProfile, getUserProfile } from '@/utils/supabase/profile';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -29,20 +29,52 @@ function LoginForm() {
   const syncUserProfile = async (
     supabase: SupabaseClient,
     user: User | null,
-    fallbackName?: string
+    fallbackName?: string,
+    role?: string,
+    companyId?: string
   ) => {
     if (!user) {
       return;
     }
 
-    try {
-      await ensureUserProfile(supabase, user, {
-        email,
-        name: fallbackName,
-      });
-    } catch (profileError) {
-      console.error('Erro ao sincronizar perfil do usuário:', profileError);
+    await ensureUserProfile(supabase, user, {
+      email,
+      name: fallbackName,
+      role,
+      companyId,
+    });
+  };
+
+  const ensureCompanyForSignup = async (
+    supabase: SupabaseClient,
+    user: User | null,
+    name: string
+  ) => {
+    if (!user) {
+      return undefined;
     }
+
+    const existingProfile = await getUserProfile(supabase, user.id);
+    if (existingProfile?.companyId) {
+      return existingProfile.companyId;
+    }
+
+    const companyId = crypto.randomUUID();
+    const { data, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        id: companyId,
+        name: name.trim(),
+        cnpj: '',
+      })
+      .select('id')
+      .single();
+
+    if (companyError) {
+      throw companyError;
+    }
+
+    return data.id as string;
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -63,6 +95,7 @@ function LoginForm() {
     try {
       setIsLoading(true);
       const supabase = createClient();
+      const normalizedCompanyName = companyName.trim();
       
       if (isSignUp) {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -70,7 +103,7 @@ function LoginForm() {
           password,
           options: {
             data: {
-              company_name: companyName,
+              company_name: normalizedCompanyName,
             }
           }
         });
@@ -79,11 +112,12 @@ function LoginForm() {
           setError(signUpError.message);
         } else {
           if (data.session) {
-            await syncUserProfile(supabase, data.user, companyName);
+            const companyId = await ensureCompanyForSignup(supabase, data.user, normalizedCompanyName);
+            await syncUserProfile(supabase, data.user, normalizedCompanyName, 'admin', companyId);
             router.push('/dashboard');
             router.refresh();
           } else {
-            setSuccess('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');
+            setSuccess('Conta criada com sucesso! Verifique seu email para confirmar o cadastro e concluir o acesso da empresa.');
           }
         }
       } else {

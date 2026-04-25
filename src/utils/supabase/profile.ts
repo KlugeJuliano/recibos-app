@@ -4,6 +4,31 @@ import type { Users } from '@/app/types'
 type ProfileSeed = {
   email?: string
   name?: string
+  role?: string
+  companyId?: string
+  lojaId?: string
+}
+
+type UserProfileRow = {
+  id: string
+  email?: string | null
+  name?: string | null
+  role?: string | null
+  company_id?: string | null
+  loja_id?: string | null
+  companyId?: string | null
+  lojaId?: string | null
+}
+
+function toUsers(row: UserProfileRow): Users {
+  return {
+    id: row.id,
+    email: row.email ?? '',
+    name: row.name ?? 'Usuário',
+    role: row.role ?? 'funcionario',
+    companyId: row.company_id ?? row.companyId ?? '',
+    lojaId: row.loja_id ?? row.lojaId ?? '',
+  }
 }
 
 function getDefaultProfile(user: User, seed?: ProfileSeed): Users {
@@ -16,9 +41,20 @@ function getDefaultProfile(user: User, seed?: ProfileSeed): Users {
       user.user_metadata?.company_name ??
       user.email?.split('@')[0] ??
       'Usuário',
-    role: 'Funcionário',
-    companyId: '',
-    lojaId: '',
+    role: seed?.role ?? 'funcionario',
+    companyId: seed?.companyId ?? '',
+    lojaId: seed?.lojaId ?? '',
+  }
+}
+
+function toUserProfilePayload(profile: Users) {
+  return {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    role: profile.role,
+    company_id: profile.companyId || null,
+    loja_id: profile.lojaId || null,
   }
 }
 
@@ -36,7 +72,7 @@ export async function getUserProfile(
     throw error
   }
 
-  return data
+  return data ? toUsers(data as UserProfileRow) : null
 }
 
 export async function ensureUserProfile(
@@ -47,13 +83,44 @@ export async function ensureUserProfile(
   const existingProfile = await getUserProfile(supabase, user.id)
 
   if (existingProfile) {
-    return existingProfile
+    const nextProfile: Users = {
+      ...existingProfile,
+      email: existingProfile.email || seed?.email || user.email || '',
+      name: existingProfile.name || seed?.name || user.user_metadata?.name || user.user_metadata?.company_name || 'Usuário',
+      role: ['Funcionário', 'funcionario'].includes(existingProfile.role) && seed?.role ? seed.role : existingProfile.role,
+      companyId: existingProfile.companyId || seed?.companyId || '',
+      lojaId: existingProfile.lojaId || seed?.lojaId || '',
+    }
+
+    const shouldUpdate =
+      nextProfile.email !== existingProfile.email ||
+      nextProfile.name !== existingProfile.name ||
+      nextProfile.role !== existingProfile.role ||
+      nextProfile.companyId !== existingProfile.companyId ||
+      nextProfile.lojaId !== existingProfile.lojaId
+
+    if (!shouldUpdate) {
+      return existingProfile
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(toUserProfilePayload(nextProfile))
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return toUsers(data as UserProfileRow)
   }
 
   const profile = getDefaultProfile(user, seed)
   const { data, error } = await supabase
     .from('users')
-    .upsert(profile, { onConflict: 'id' })
+    .upsert(toUserProfilePayload(profile), { onConflict: 'id' })
     .select()
     .single()
 
@@ -61,5 +128,5 @@ export async function ensureUserProfile(
     throw error
   }
 
-  return data
+  return toUsers(data as UserProfileRow)
 }

@@ -33,6 +33,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   const userRole = profile?.role || 'Funcionário';
   const userName = profile?.name || user.user_metadata?.name || user.email || 'Usuário';
+  const canAccessAdmin = ['gerente', 'admin', 'super_admin', 'super admin'].includes(
+    userRole.trim().toLowerCase()
+  );
   
   return (
     <div className="min-h-screen bg-gray-100">
@@ -63,7 +66,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             >
               Relatórios
             </Link>
-            {userRole === 'Gerente' && (
+            {canAccessAdmin && (
               <Link
                 href="/dashboard/admin" 
                 className="block px-4 py-2 rounded-lg hover:bg-blue-50 text-blue-700 font-medium"

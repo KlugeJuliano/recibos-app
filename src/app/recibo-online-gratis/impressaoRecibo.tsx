@@ -1,6 +1,6 @@
 'use client'
 
-import { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react'
+import { Component, ErrorInfo, ReactNode, useEffect, useRef, useState } from 'react'
 
 type Props = {
   dados: {
@@ -123,9 +123,12 @@ const valorPorExtenso = (valor: number): string => {
 };
 
 export default function ReciboPrint({ dados, onClose }: Props) {
+  const receiptRef = useRef<HTMLDivElement>(null)
   const [reciboId, setReciboId] = useState('')
   const [geradoEm, setGeradoEm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isPdfLoading, setIsPdfLoading] = useState(false)
+  const [pdfError, setPdfError] = useState('')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
 
   // Validar os dados do recibo
@@ -197,7 +200,68 @@ export default function ReciboPrint({ dados, onClose }: Props) {
   const temIntervalo = dados.horaIntervalo && dados.horaVoltaIntervalo;
 
   const handlePrint = () => {
-    window.print()
+    const receiptContent = receiptRef.current;
+    if (!receiptContent) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=900');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Recibo ${reciboId}</title>
+          <style>
+            body { margin: 0; padding: 32px; background: #fff; color: #000; font-family: Georgia, 'Times New Roman', serif; }
+            .receipt-only { max-width: 720px; margin: 0 auto; }
+            @page { size: A4; margin: 18mm; }
+          </style>
+        </head>
+        <body>
+          <main class="receipt-only">${receiptContent.innerHTML}</main>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  }
+
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfError('');
+      setIsPdfLoading(true);
+      const response = await fetch('/api/recibos/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...dados, id: reciboId }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || 'Não foi possível gerar o PDF.');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `recibo-${reciboId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : 'Não foi possível gerar o PDF.');
+    } finally {
+      setIsPdfLoading(false);
+    }
   }
 
   if (isLoading) {
@@ -234,69 +298,76 @@ export default function ReciboPrint({ dados, onClose }: Props) {
   return (
     <ErrorBoundary>
       <div className="p-6 max-w-2xl mx-auto bg-white text-black shadow-md print:shadow-none print:bg-white print:p-0" role="document">
-        <h1 className="text-center text-xl font-bold mb-6 print:mb-4">RECIBO DE PAGAMENTO</h1>
-        <div className="text-lg leading-8 print:leading-7">
-          <p className="mb-4">
-            Eu, <strong>{dados.name}</strong>, declaro que recebi de <strong>{dados.loja}</strong> a quantia de <strong>{formatarValor(dados.valorPagamento)}</strong> (
-              <span>{valorPorExtenso(dados.valorPagamento)}</span>
-            ) referente a serviços de <strong>{dados.funcaoDesempenhada}</strong> realizados no dia <strong>{formatarData(dados.dataRecibo)}</strong>.
-          </p>
-          
-          <p className="mb-4">
-            <strong>Horário de trabalho:</strong><br />
-            Entrada: <strong>{dados.horaInicio}h</strong><br />
-            Saída: <strong>{dados.horaFinal}h</strong>
+        <div ref={receiptRef}>
+          <h1 className="text-center text-xl font-bold mb-6 print:mb-4">RECIBO DE PAGAMENTO</h1>
+          <div className="text-lg leading-8 print:leading-7">
+            <p className="mb-4">
+              Eu, <strong>{dados.name}</strong>, declaro que recebi de <strong>{dados.loja}</strong> a quantia de <strong>{formatarValor(dados.valorPagamento)}</strong> (
+                <span>{valorPorExtenso(dados.valorPagamento)}</span>
+              ) referente a serviços de <strong>{dados.funcaoDesempenhada}</strong> realizados no dia <strong>{formatarData(dados.dataRecibo)}</strong>.
+            </p>
             
-            {temIntervalo && (
-              <>
-                <br />
-                <br />
-                <strong>Intervalo:</strong><br />
-                Saída para intervalo: <strong>{dados.horaIntervalo}h</strong><br />
-                Retorno do intervalo: <strong>{dados.horaVoltaIntervalo}h</strong>
-              </>
-            )}
-          </p>
-        </div>
-        
-        {/* Seção de assinatura */}
-        <div className="mt-10 print:mt-12">
-          <p className="text-right mb-8 print:mb-10">
-            São Paulo, {formatarData(dados.dataRecibo)}
-          </p>
+            <p className="mb-4">
+              <strong>Horário de trabalho:</strong><br />
+              Entrada: <strong>{dados.horaInicio}h</strong><br />
+              Saída: <strong>{dados.horaFinal}h</strong>
+              
+              {temIntervalo && (
+                <>
+                  <br />
+                  <br />
+                  <strong>Intervalo:</strong><br />
+                  Saída para intervalo: <strong>{dados.horaIntervalo}h</strong><br />
+                  Retorno do intervalo: <strong>{dados.horaVoltaIntervalo}h</strong>
+                </>
+              )}
+            </p>
+          </div>
           
-          <div className="flex justify-between items-end print:mt-8">
-            <div className="w-5/12">
-              <div className="border-t border-black pt-1">
-                <p className="text-center">{dados.name}</p>
-                <p className="text-center text-sm text-gray-600">CPF: ___.___.___-__</p>
+          <div className="mt-10 print:mt-12">
+            <p className="text-right mb-8 print:mb-10">
+              São Paulo, {formatarData(dados.dataRecibo)}
+            </p>
+            
+            <div className="flex justify-between items-end print:mt-8">
+              <div className="w-5/12">
+                <div className="border-t border-black pt-1">
+                  <p className="text-center">{dados.name}</p>
+                  <p className="text-center text-sm text-gray-600">CPF: ___.___.___-__</p>
+                </div>
               </div>
-            </div>
-            
-            <div className="w-5/12">
-              <div className="border-t border-black pt-1">
-                <p className="text-center">Responsável {dados.setor}</p>
-                <p className="text-center text-sm text-gray-600">Carimbo e assinatura</p>
+              
+              <div className="w-5/12">
+                <div className="border-t border-black pt-1">
+                  <p className="text-center">Responsável {dados.setor}</p>
+                  <p className="text-center text-sm text-gray-600">Carimbo e assinatura</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Metadados do recibo - visíveis em ambas visualizações (tela e impressão) */}
-        <div className="mt-10 pt-4 border-t border-gray-300 text-xs text-gray-600 print:mt-16">
-          <p><strong>Nº do Recibo:</strong> {reciboId}</p>
-          <p><strong>Gerado em:</strong> {geradoEm}</p>
-          <p className="mt-1 print:mt-2">Este recibo é válido como comprovante de pagamento.</p>
+
+          <div className="mt-10 pt-4 border-t border-gray-300 text-xs text-gray-600 print:mt-16">
+            <p><strong>Nº do Recibo:</strong> {reciboId}</p>
+            <p><strong>Gerado em:</strong> {geradoEm}</p>
+            <p className="mt-1 print:mt-2">Este recibo é válido como comprovante de pagamento.</p>
+          </div>
         </div>
 
-        {/* Botões - visíveis apenas na tela */}
-        <div className="mt-6 flex gap-4 print:hidden">
+        <div className="mt-6 flex flex-wrap gap-3 print:hidden">
           <button 
             onClick={handlePrint} 
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             aria-label="Imprimir recibo"
           >
             Imprimir
+          </button>
+          <button
+            onClick={handleDownloadPdf}
+            className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            aria-label="Baixar PDF do recibo"
+            disabled={isPdfLoading}
+          >
+            {isPdfLoading ? 'Gerando PDF...' : 'Baixar PDF'}
           </button>
           <button 
             onClick={onClose} 
@@ -306,6 +377,7 @@ export default function ReciboPrint({ dados, onClose }: Props) {
             Fechar
           </button>
         </div>
+        {pdfError && <p className="mt-3 text-sm text-red-600 print:hidden">{pdfError}</p>}
       </div>
     </ErrorBoundary>
   );

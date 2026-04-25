@@ -23,7 +23,6 @@ export type Loja = {
 export type Users = {
     id: string;
     name: string;
-    password: string;
     companyId: string;
     lojaId: string;
     role: string;

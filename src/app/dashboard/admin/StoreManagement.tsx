@@ -2,13 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Loja, Company, Sector } from '@/app/types';
-import { lojas, companies, sectors as allSectors } from '@/app/lib/mokdata';
+import { createClient } from '@/utils/supabase/client';
+import { StoreRepository } from '@/app/repositories/StoreRepository';
+import { CompanyRepository } from '@/app/repositories/CompanyRepository';
+import { SectorRepository } from '@/app/repositories/SectionRepository';
 
 export default function StoreManagement() {
-  const [stores, setStores] = useState<Loja[]>(lojas);
+  const supabase = createClient();
+  const [stores, setStores] = useState<Loja[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [allSectors, setAllSectors] = useState<Sector[]>([]);
   const [editingStore, setEditingStore] = useState<Loja | null>(null);
-  const [filteredStores, setFilteredStores] = useState<Loja[]>(lojas);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filteredStores, setFilteredStores] = useState<Loja[]>([]);
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [formData, setFormData] = useState<Omit<Loja, 'sectors'> & {selectedSectors: string[]}>({
     id: '',
     loja: '',
@@ -18,11 +27,35 @@ export default function StoreManagement() {
     phone: '',
     selectedSectors: []
   });
-  const [availableSectors, setAvailableSectors] = useState<Sector[]>(allSectors);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [storesData, companiesData, sectorsData] = await Promise.all([
+        StoreRepository.getAll(supabase),
+        CompanyRepository.getAll(supabase),
+        SectorRepository.getAll(supabase)
+      ]);
+      
+      setStores(storesData);
+      setCompanies(companiesData);
+      setAllSectors(sectorsData);
+      setFilteredStores(storesData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Open edit modal with store data
   const handleEdit = (store: Loja) => {
     setEditingStore(store);
+    setIsModalOpen(true);
     setFormData({
       id: store.id,
       loja: store.loja,
@@ -30,7 +63,7 @@ export default function StoreManagement() {
       companyId: store.companyId,
       address: store.address || '',
       phone: store.phone || '',
-      selectedSectors: store.sectors.map(s => s.id)
+      selectedSectors: store.sectors?.map(s => s.id) || []
     });
   };
 
@@ -46,41 +79,25 @@ export default function StoreManagement() {
   // Format CNPJ input with mask
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
-    // Remove all non-digits
     value = value.replace(/\D/g, '');
-    
-    // Apply CNPJ mask: XX.XXX.XXX/XXXX-XX
     if (value.length <= 14) {
       value = value.replace(/^(\d{2})(\d)/, '$1.$2');
       value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
       value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
       value = value.replace(/(\d{4})(\d)/, '$1-$2');
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      cnpj: value
-    }));
+    setFormData(prev => ({ ...prev, cnpj: value }));
   };
 
   // Handle phone input with mask
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
-    // Remove all non-digits
     value = value.replace(/\D/g, '');
-    
-    // Apply phone mask: (XX) XXXX-XXXX
     if (value.length <= 11) {
       value = value.replace(/^(\d{2})(\d)/, '($1) $2');
       value = value.replace(/(\d)(\d{4})$/, '$1-$2');
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      phone: value
-    }));
+    setFormData(prev => ({ ...prev, phone: value }));
   };
 
   // Handle sector selection
@@ -104,56 +121,65 @@ export default function StoreManagement() {
 
   // Select company
   const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      companyId: e.target.value
-    }));
+    setFormData(prev => ({ ...prev, companyId: e.target.value }));
   };
 
   // Save store changes
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // Get selected sectors as full objects
-    const selectedSectorObjects = allSectors.filter(sector => 
-      formData.selectedSectors.includes(sector.id)
-    );
-    
-    if (editingStore) {
-      // Update existing store
-      setStores(prev => 
-        prev.map(store => 
-          store.id === editingStore.id 
-            ? { 
-                ...formData,
-                sectors: selectedSectorObjects
-              } 
-            : store
-        )
+    try {
+      const selectedSectorObjects = allSectors.filter(sector => 
+        formData.selectedSectors.includes(sector.id)
       );
-    } else {
-      // Add new store
-      const newStore: Loja = {
-        ...formData,
-        id: `loja${Date.now().toString().slice(-4)}`, // Simple way to generate a unique ID
-        sectors: selectedSectorObjects
+
+      const storeToSave: any = {
+        loja: formData.loja,
+        cnpj: formData.cnpj,
+        companyId: formData.companyId,
+        address: formData.address,
+        phone: formData.phone,
+        // Note: Relation handling depends on DB schema. 
+        // For now saving sectors as array if supported, otherwise this needs a link table update.
+        sectors: selectedSectorObjects 
       };
-      setStores(prev => [...prev, newStore]);
+
+      if (editingStore) {
+        await StoreRepository.update(supabase, editingStore.id, storeToSave);
+      } else {
+        await StoreRepository.add(supabase, storeToSave);
+      }
+      
+      await loadData();
+      handleCancel();
+    } catch (error) {
+      console.error('Erro ao salvar loja:', error);
+      alert('Erro ao salvar loja. Verifique o console.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Reset form
-    handleCancel();
   };
 
   // Delete store
-  const handleDelete = (storeId: string) => {
+  const handleDelete = async (storeId: string) => {
     if (confirm('Tem certeza que deseja excluir esta loja? Isso pode afetar usuários vinculados a ela.')) {
-      setStores(prev => prev.filter(store => store.id !== storeId));
+      try {
+        setIsLoading(true);
+        await StoreRepository.delete(supabase, storeId);
+        await loadData();
+      } catch (error) {
+        console.error('Erro ao excluir loja:', error);
+        alert('Erro ao excluir loja.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   // Cancel editing
   const handleCancel = () => {
+    setIsModalOpen(false);
     setEditingStore(null);
     setFormData({
       id: '',
@@ -168,6 +194,7 @@ export default function StoreManagement() {
 
   // Start creating a new store
   const handleAddNew = () => {
+    setIsModalOpen(true);
     setEditingStore(null);
     setFormData({
       id: '',
@@ -184,14 +211,16 @@ export default function StoreManagement() {
   const handleCompanyFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const companyId = e.target.value;
     setSelectedCompanyFilter(companyId);
-    
-    // Filter stores based on selected company
     if (companyId) {
       setFilteredStores(stores.filter(store => store.companyId === companyId));
     } else {
       setFilteredStores(stores);
     }
   };
+
+  if (isLoading && stores.length === 0) {
+    return <div className="p-8 text-center text-gray-500">Carregando dados...</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -225,30 +254,13 @@ export default function StoreManagement() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Nome da Loja
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                CNPJ
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Empresa
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Endereço
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Telefone
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Setores
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ações
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome da Loja</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CNPJ</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Endereço</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setores</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -256,47 +268,22 @@ export default function StoreManagement() {
               const company = companies.find(c => c.id === store.companyId);
               return (
                 <tr key={store.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {store.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{store.loja}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {store.cnpj}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {company?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {store.address || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {store.phone || '-'}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{store.loja}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{store.cnpj}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{company?.name || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{store.address || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{store.phone || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex flex-wrap gap-1">
-                      {store.sectors.map(sector => (
-                        <span key={sector.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">
-                          {sector.name}
-                        </span>
+                      {store.sectors?.map(sector => (
+                        <span key={sector.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{sector.name}</span>
                       ))}
-                      {store.sectors.length === 0 && '-'}
+                      {(!store.sectors || store.sectors.length === 0) && '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(store)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(store.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Excluir
-                    </button>
+                    <button onClick={() => handleEdit(store)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
+                    <button onClick={() => handleDelete(store.id)} className="text-red-600 hover:text-red-900">Excluir</button>
                   </td>
                 </tr>
               );
@@ -306,128 +293,57 @@ export default function StoreManagement() {
       </div>
 
       {/* Store Form Modal */}
-      {(editingStore !== null || formData.id === '') && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">
-              {editingStore ? 'Editar Loja' : 'Nova Loja'}
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">{editingStore ? 'Editar Loja' : 'Nova Loja'}</h3>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nome da Loja</label>
-                <input
-                  type="text"
-                  name="loja"
-                  value={formData.loja}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                />
+                <input type="text" name="loja" value={formData.loja} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">CNPJ</label>
-                <input
-                  type="text"
-                  name="cnpj"
-                  value={formData.cnpj}
-                  onChange={handleCnpjChange}
-                  required
-                  placeholder="XX.XXX.XXX/XXXX-XX"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                />
+                <input type="text" name="cnpj" value={formData.cnpj} onChange={handleCnpjChange} required placeholder="XX.XXX.XXX/XXXX-XX" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Empresa</label>
-                <select
-                  name="companyId"
-                  value={formData.companyId}
-                  onChange={handleCompanyChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                >
+                <select name="companyId" value={formData.companyId} onChange={handleCompanyChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                   <option value="">Selecione uma empresa</option>
-                  {companies.map(company => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
-                  ))}
+                  {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Endereço</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Ex: Rua Principal, 100"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                />
+                <input type="text" name="address" value={formData.address} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Telefone</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handlePhoneChange}
-                  placeholder="(XX) XXXX-XXXX"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                />
+                <input type="text" name="phone" value={formData.phone} onChange={handlePhoneChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Setores</label>
-                <div className="flex space-x-2">
-                  <select
-                    onChange={handleSectorChange}
-                    value=""
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                  >
-                    <option value="">Selecione os setores</option>
-                    {allSectors
-                      .filter(sector => !formData.selectedSectors.includes(sector.id))
-                      .map(sector => (
-                        <option key={sector.id} value={sector.id}>{sector.name}</option>
-                      ))}
-                  </select>
+                <select onChange={handleSectorChange} value="" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                  <option value="">Selecione os setores</option>
+                  {allSectors.filter(sector => !formData.selectedSectors.includes(sector.id)).map(sector => (
+                    <option key={sector.id} value={sector.id}>{sector.name}</option>
+                  ))}
+                </select>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {formData.selectedSectors.map(sectorId => {
+                    const sector = allSectors.find(s => s.id === sectorId);
+                    return sector && (
+                      <div key={sector.id} className="flex items-center bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-sm">
+                        {sector.name}
+                        <button type="button" onClick={() => handleRemoveSector(sector.id)} className="ml-1 text-indigo-500">×</button>
+                      </div>
+                    );
+                  })}
                 </div>
-                {formData.selectedSectors.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">Setores selecionados:</p>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {formData.selectedSectors.map(sectorId => {
-                        const sector = allSectors.find(s => s.id === sectorId);
-                        return sector ? (
-                          <div key={sector.id} className="flex items-center bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-sm">
-                            {sector.name}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSector(sector.id)}
-                              className="ml-1 text-indigo-500 hover:text-indigo-700"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                            </button>
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
               <div className="flex justify-end space-x-3 mt-5">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  Salvar
-                </button>
+                <button type="button" onClick={handleCancel} className="px-4 py-2 border rounded-md bg-white">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md" disabled={isLoading}>Salvar</button>
               </div>
             </form>
           </div>
@@ -436,4 +352,3 @@ export default function StoreManagement() {
     </div>
   );
 }
-

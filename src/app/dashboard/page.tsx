@@ -1,51 +1,116 @@
-'use client';
+import Link from 'next/link';
+import LogoutButton from '@/components/LogoutButton';
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+const metrics = [
+  { label: 'Recibos emitidos', value: '0', detail: 'comece emitindo o primeiro hoje', tone: 'bg-emerald-500' },
+  { label: 'Rotinas pendentes', value: '3', detail: 'cadastros que melhoram sua operacao', tone: 'bg-amber-400' },
+  { label: 'Nivel de organizacao', value: 'Novo', detail: 'configure dados para ganhar velocidade', tone: 'bg-sky-500' },
+];
+
+const actions = [
+  {
+    href: '/dashboard/recibos',
+    title: 'Emitir recibo',
+    description: 'Crie um recibo com horario, funcao e valor calculado.',
+    cta: 'Nova emissao',
+  },
+  {
+    href: '/dashboard/relatorios',
+    title: 'Conferir historico',
+    description: 'Acompanhe recibos anteriores e mantenha controle financeiro.',
+    cta: 'Abrir relatorios',
+  },
+  {
+    href: '/dashboard/admin',
+    title: 'Organizar equipe',
+    description: 'Cadastre usuarios, lojas, setores e funcoes operacionais.',
+    cta: 'Ir para administracao',
+  },
+];
 
 export default function DashboardPage() {
-  const router = useRouter();
-
-  // Simulação de verificação de autenticação (mais tarde trocaremos por Supabase)
-  useEffect(() => {
-    const isLoggedIn = true; // trocaremos por verificação real
-    if (!isLoggedIn) {
-      router.push('/login');
-    }
-  }, [router]);
-  
-  
-
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
-        <h1 className="text-3xl font-bold text-blue-700 mb-4">Dashboard</h1>
-        <p className="text-gray-600">
-          Bem-vindo ao seu painel. Aqui você poderá visualizar e gerenciar seus recibos, relatórios e configurações da loja.
-        </p>
+    <main className="min-h-screen bg-[#f7f8f4] p-4 sm:p-6 lg:p-8">
+      <section className="rounded-md bg-slate-950 px-6 py-8 text-white sm:px-8">
+        <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div className="max-w-2xl">
+            <p className="text-sm font-medium text-emerald-300">Painel operacional</p>
+            <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Transforme cada recibo em controle de gestao.</h1>
+            <p className="mt-4 leading-7 text-slate-300">
+              Priorize as acoes que mantem a equipe produtiva: emitir, conferir e padronizar dados.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/recibos"
+            className="rounded-md bg-emerald-400 px-5 py-3 text-center font-semibold text-slate-950 transition hover:bg-emerald-300"
+          >
+            Emitir recibo agora
+          </Link>
+        </div>
+      </section>
 
-        <div className="mt-8 grid gap-4 grid-cols-1 md:grid-cols-2">
-          <div className="bg-blue-100 rounded-lg p-4" onClick={()=>router.push('/dashboard/recibos')}>
-            <h2 className="text-xl font-semibold text-blue-700">Emitir Recibo</h2>
-            <p className="text-sm text-gray-700">Crie um novo recibo rapidamente.</p>
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="rounded-md border border-slate-200 bg-white p-5">
+            <div className={`mb-5 h-1.5 w-16 rounded ${metric.tone}`} />
+            <p className="text-sm font-medium text-slate-500">{metric.label}</p>
+            <div className="mt-2 text-3xl font-bold text-slate-950">{metric.value}</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{metric.detail}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+        <div className="rounded-md border border-slate-200 bg-white p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-950">Proximas melhores acoes</h2>
+              <p className="mt-1 text-sm text-slate-600">Fluxos que ajudam a criar habito e reter controle.</p>
+            </div>
           </div>
 
-          <div className="bg-green-100 rounded-lg p-4" onClick={()=> router.push('dashboard/relatorios')}>
-            <h2 className="text-xl font-semibold text-green-700">Relatórios</h2>
-            <p className="text-sm text-gray-700">Visualize e exporte recibos anteriores.</p>
-          </div>
-
-          <div className="bg-yellow-100 rounded-lg p-4" onClick={()=> router.push('dashboard/admin')}>
-            <h2 className="text-xl font-semibold text-yellow-700">Administração</h2>
-            <p className="text-sm text-gray-700">Gerencie usuários, lojas e permissões.</p>
-          </div>
-
-          <div className="bg-red-100 rounded-lg p-4">
-            <h2 className="text-xl font-semibold text-red-700" onClick={()=> router.push('login')}>Sair</h2>
-            <p className="text-sm text-gray-700">Encerre sua sessão com segurança.</p>
+          <div className="mt-6 space-y-3">
+            {actions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="block rounded-md border border-slate-200 p-5 transition hover:border-emerald-300 hover:bg-emerald-50/60"
+              >
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div>
+                    <h3 className="font-semibold text-slate-950">{action.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{action.description}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-emerald-700">{action.cta}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
-      </div>
+
+        <aside className="rounded-md border border-slate-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-slate-950">Checklist de maturidade</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Quanto mais completo o cadastro, menor o atrito para emitir recibos consistentes.
+          </p>
+          <div className="mt-6 space-y-4">
+            {['Empresa cadastrada', 'Lojas e setores revisados', 'Funcoes padronizadas', 'Equipe com acesso correto'].map((item, index) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className={`h-3 w-3 rounded-full ${index === 0 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                <span className="text-sm font-medium text-slate-700">{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 rounded-md bg-[#f7f8f4] p-4">
+            <p className="text-sm leading-6 text-slate-600">
+              Dica: mantenha nomes de cargos e setores consistentes para acelerar emissao e relatorios.
+            </p>
+          </div>
+          <div className="mt-6">
+            <LogoutButton variant="text" className="px-0 py-0 font-semibold" />
+          </div>
+        </aside>
+      </section>
     </main>
   );
 }

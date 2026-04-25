@@ -23,10 +23,10 @@ export interface Loja {
 export interface Users {
   id: string;
   email: string;
-  password: string;
   lojaId: string;
   name: string;
   role: string;
+  companyId: string;
 }
 
 export interface Recibos {

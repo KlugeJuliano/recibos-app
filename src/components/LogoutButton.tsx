@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 type LogoutButtonProps = {
   className?: string;
@@ -18,6 +18,7 @@ export default function LogoutButton({
   label = 'Sair'
 }: LogoutButtonProps) {
   const router = useRouter();
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
 
   // Base styles based on variant and size
@@ -38,15 +39,11 @@ export default function LogoutButton({
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      // Sign out and redirect to login page
-      await signOut({ 
-        redirect: false,
-        callbackUrl: '/login'
-      });
+      await supabase.auth.signOut();
       
-      // Use router to redirect after logout
+      // Use router to redirect after logout and refresh the state
       router.push('/login');
-      router.refresh(); // Refresh to update auth state
+      router.refresh();
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -76,4 +73,3 @@ export default function LogoutButton({
     </button>
   );
 }
-

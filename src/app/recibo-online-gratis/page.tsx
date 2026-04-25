@@ -1,15 +1,12 @@
 'use client';
-
 import ReciboPrint from './impressaoRecibo'; 
 import { useState } from 'react'; 
 import './print.css';
 
-export default function RecibosPage() { 
+
+export default function ReciboOnlineGratisPage() { 
   const [form, setForm] = useState({
     dataRecibo: new Date().toISOString().split('T')[0],
-    time: '',
-    lojaId: '',
-    userId: '',
     name: '',
     valor: 15,
     funcaoDesempenhada: '',
@@ -72,14 +69,14 @@ export default function RecibosPage() {
     return null;
   }
 
-  const calculateValorPagamento = (currentForm = form) => {
+  const calculateValorPagamento = () => {
     const {
       horaInicio,
       horaIntervalo,
       horaVoltaIntervalo,
       horaFinal,
       valor
-    } = currentForm;
+    } = form;
 
     const toDate = (hora: string) => new Date(`1970-01-01T${hora}:00`);
 
@@ -100,7 +97,12 @@ export default function RecibosPage() {
     }
 
     const valorPorHora = valor / 8;
-    return Number((horasTrabalhadas * valorPorHora).toFixed(2));
+    const valorTotal = horasTrabalhadas * valorPorHora;
+
+    setForm((prev) => ({
+      ...prev,
+      valorPagamento: valorTotal.toFixed(2)
+    }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -140,9 +142,6 @@ export default function RecibosPage() {
   const resetForm = () => {
     setForm({
       dataRecibo: new Date().toISOString().split('T')[0],
-      time: '',
-      lojaId: '',
-      userId: '',
       name: '',
       valor: 15,
       funcaoDesempenhada: '',
@@ -163,46 +162,21 @@ export default function RecibosPage() {
   setGeneralError(null);
   
   try {
+    // Validar formulário
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       setIsSubmitting(false);
       return;
     }
-
-    const valorPagamento = calculateValorPagamento();
-    const payload = {
-      ...form,
-      valor: Number(form.valor),
-      valorPagamento,
-    };
-
-    const response = await fetch('/api/recibos', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.error || 'O recibo não pôde ser salvo.');
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      valorPagamento: valorPagamento.toFixed(2)
-    }));
-
+    
+    calculateValorPagamento();
+    // Simular um pequeno delay para mostrar o estado de loading
+    await new Promise(resolve => setTimeout(resolve, 500));
     setMostrarRecibo(true);
   } catch (error) {
     console.error('Erro ao processar recibo:', error);
-    setGeneralError(
-      error instanceof Error
-        ? error.message
-        : 'Ocorreu um erro ao processar o recibo. Tente novamente.'
-    );
+    setGeneralError('Ocorreu um erro ao processar o recibo. Tente novamente.');
   } finally {
     setIsSubmitting(false);
   }
@@ -212,7 +186,9 @@ export default function RecibosPage() {
     <>
       <main className="min-h-screen bg-gray-100 p-8">
         <div className="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow">
-          <h1 className="text-2xl font-bold text-blue-700 mb-6">Emitir Recibo Completo</h1>
+          <h1 className="text-2xl font-bold text-blue-700 mb-6">Gerador de Recibo Online Grátis</h1>
+          <p className="text-gray-600 mb-6">Crie um recibo de pagamento de forma simples e rápida. Preencha os campos abaixo e clique em "Emitir Recibo" para gerar o documento.</p>
+
 
           {generalError && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
@@ -446,7 +422,7 @@ export default function RecibosPage() {
             <div className="bg-white p-6 rounded-xl shadow-lg max-w-3xl w-full">
               <ReciboPrint
                 dados={{
-                  loja: 'Loja Exemplo',
+                  loja: 'Loja Exemplo', // TODO: Make this dynamic or configurable if needed
                   name: form.name,
                   setor: form.setor,
                   funcaoDesempenhada: form.funcaoDesempenhada,

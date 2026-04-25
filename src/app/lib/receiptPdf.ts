@@ -182,6 +182,7 @@ export function ReceiptPdf({ recibo }: { recibo: ReceiptPdfRecord }) {
   const id = recibo.id ?? crypto.randomUUID();
   const date = formatDate(recibo.dataRecibo);
   const cidade = recibo.cidade || 'Sao Paulo';
+  const shouldShowTimeDetails = !recibo.tipo || recibo.tipo === 'trabalhista';
 
   return React.createElement(
     Document,
@@ -204,13 +205,15 @@ export function ReceiptPdf({ recibo }: { recibo: ReceiptPdfRecord }) {
           date,
         })
       ),
-      React.createElement(
-        View,
-        { style: styles.row },
-        React.createElement(Text, null, `Setor: ${recibo.setor || '-'}`),
-        React.createElement(Text, null, `Entrada: ${recibo.horaInicio || '-'} | Saida: ${recibo.horaFinal || '-'}`),
-        React.createElement(Text, null, `Intervalo: ${recibo.horaIntervalo || '-'} | Retorno: ${recibo.horaVoltaIntervalo || '-'}`)
-      ),
+      shouldShowTimeDetails
+        ? React.createElement(
+            View,
+            { style: styles.row },
+            React.createElement(Text, null, `Setor: ${recibo.setor || '-'}`),
+            React.createElement(Text, null, `Entrada: ${recibo.horaInicio || '-'} | Saida: ${recibo.horaFinal || '-'}`),
+            React.createElement(Text, null, `Intervalo: ${recibo.horaIntervalo || '-'} | Retorno: ${recibo.horaVoltaIntervalo || '-'}`)
+          )
+        : null,
       React.createElement(Text, { style: styles.placeDate }, `${cidade}, ${date}.`),
       React.createElement(
         View,

@@ -44,18 +44,18 @@ export const usuarios: Users[] = [
   {
     id: "u1",
     email: "admin@central.com",
-    password: "123456",
     lojaId: "loja1",
     name: "Juliano",
-    role: "Gerente"
+    role: "Gerente",
+    companyId: "company1"
   },
   {
     id: "u2",
     email: "admin@bairro.com",
-    password: "123456",
     lojaId: "loja2",
     name: "Peão",
-    role: "nehuma"
+    role: "nehuma",
+    companyId: "company2"
   },
 ];
 

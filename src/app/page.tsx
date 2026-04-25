@@ -1,5 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { receiptTypes } from '@/app/lib/receiptTypes';
+
+export const metadata = {
+  title: 'ReciboPro | Gerador de Recibos Online',
+  description: 'Gere recibos profissionais online, visualize na hora e baixe em PDF.',
+};
 
 const heroBadges = ['100% online', 'PDF profissional', 'Sem instalacao'];
 
@@ -85,9 +91,9 @@ export default function HomePage() {
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
-            <a href="#funcionalidades" className="hover:text-blue-700">Funcionalidades</a>
-            <a href="#beneficios" className="hover:text-blue-700">Beneficios</a>
-            <a href="#planos" className="hover:text-blue-700">Planos</a>
+            <a href="#como-funciona" className="hover:text-blue-700">Como funciona</a>
+            <a href="#planos" className="hover:text-blue-700">Precos</a>
+            <Link href="/exemplo" className="hover:text-blue-700">Exemplos</Link>
             <a href="#faq" className="hover:text-blue-700">FAQ</a>
           </nav>
 
@@ -121,11 +127,11 @@ export default function HomePage() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/login?signup=true" className="rounded-md bg-white px-6 py-3 text-center font-bold text-blue-800 shadow-xl shadow-blue-950/20 transition hover:bg-blue-50">
-                  Comecar teste gratis
+                <Link href="/gerar" className="rounded-md bg-white px-6 py-3 text-center font-bold text-blue-800 shadow-xl shadow-blue-950/20 transition hover:bg-blue-50">
+                  Gerar recibo agora
                 </Link>
-                <Link href="/recibo-online-gratis" className="rounded-md border border-white/30 px-6 py-3 text-center font-bold text-white transition hover:bg-white/10">
-                  Gerar recibo gratis
+                <Link href="/exemplo" className="rounded-md border border-white/30 px-6 py-3 text-center font-bold text-white transition hover:bg-white/10">
+                  Ver exemplo
                 </Link>
               </div>
 
@@ -165,6 +171,28 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section id="como-funciona" className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-700">Como funciona</p>
+              <h2 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">Do formulario ao PDF em tres passos</h2>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {[
+                ['1', 'Escolha o tipo', 'Selecione o modelo ideal para sua situacao.'],
+                ['2', 'Preencha os dados', 'Informe pagador, recebedor, valor e referencia.'],
+                ['3', 'Baixe o PDF', 'Visualize, imprima ou salve o recibo profissional.'],
+              ].map(([number, title, description]) => (
+                <article key={title} className="rounded-md border border-slate-200 bg-white p-6">
+                  <div className="text-5xl font-bold text-blue-100">{number}</div>
+                  <h3 className="mt-4 text-xl font-bold">{title}</h3>
+                  <p className="mt-2 text-slate-600">{description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="funcionalidades" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="mx-auto max-w-3xl text-center">
@@ -186,6 +214,33 @@ export default function HomePage() {
                   <h3 className="text-xl font-bold text-slate-950">{feature.title}</h3>
                   <p className="mt-3 leading-7 text-slate-600">{feature.description}</p>
                 </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-slate-50 px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-700">Tipos de recibo</p>
+              <h2 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">O tipo certo para cada situacao</h2>
+            </div>
+            <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {receiptTypes.map((type) => (
+                <Link
+                  key={type.id}
+                  href={`/gerar?tipo=${type.id}`}
+                  className="rounded-md border border-slate-200 bg-white p-4 transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-2xl">{type.emoji}</span>
+                    <span className={`rounded px-2 py-1 text-xs font-bold ${type.free ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {type.free ? 'Gratis' : 'Login'}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 font-bold text-slate-950">{type.name}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{type.description}</p>
+                </Link>
               ))}
             </div>
           </div>
@@ -329,8 +384,8 @@ export default function HomePage() {
                 Crie sua conta, organize sua empresa e comece a emitir recibos em poucos minutos.
               </p>
             </div>
-            <Link href="/login?signup=true" className="rounded-md bg-white px-6 py-3 font-bold text-blue-700 transition hover:bg-blue-50">
-              Comecar teste gratis
+            <Link href="/gerar" className="rounded-md bg-white px-6 py-3 font-bold text-blue-700 transition hover:bg-blue-50">
+              Gerar recibo agora
             </Link>
           </div>
         </section>
@@ -340,7 +395,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm md:flex-row">
           <p>ReciboPro - recibos profissionais online para empresas e prestadores.</p>
           <div className="flex gap-5">
-            <Link href="/recibo-online-gratis" className="hover:text-white">Gerador gratis</Link>
+            <Link href="/gerar" className="hover:text-white">Gerador gratis</Link>
             <Link href="/login" className="hover:text-white">Entrar</Link>
           </div>
         </div>

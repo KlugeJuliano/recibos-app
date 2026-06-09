@@ -385,8 +385,12 @@ export default function HomePage() {
                   <li>Relatorios avancados</li>
                   <li>Suporte prioritario</li>
                 </ul>
-                <button className="mt-7 block w-full rounded-md bg-slate-200 px-5 py-3 text-center font-bold text-slate-500" type="button" disabled>
-                  Em breve
+                <button 
+                  className="mt-7 block w-full rounded-md bg-blue-700 px-5 py-3 text-center font-bold text-white transition hover:bg-blue-800 active:scale-95" 
+                  type="button"
+                  onClick={() => alert('Você será notificado assim que o plano profissional for lançado!')}
+                >
+                  Entrar na lista de espera
                 </button>
               </article>
             </div>

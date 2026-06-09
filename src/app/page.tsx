@@ -157,7 +157,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="grid gap-4 p-5">
-                  <Image src="/invoice.svg" alt="Previa de recibo profissional" width={774} height={419} priority className="h-auto w-full rounded border border-slate-100 bg-white" />
+                  <Image src="/invoice.svg" alt="Previa de recibo profissional" width={774} height={419} priority fetchPriority="high" className="h-auto w-full rounded border border-slate-100 bg-white" />
                   <div className="grid grid-cols-3 gap-3">
                     {['R$ 350,00', 'PDF', 'Assinar'].map((item) => (
                       <div key={item} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-700">

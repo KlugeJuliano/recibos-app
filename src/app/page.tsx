@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { receiptTypes } from '@/app/lib/receiptTypes';
 
 export const metadata = {
@@ -112,25 +113,30 @@ export default function HomePage() {
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-800 to-slate-950 text-white">
           <div className="absolute inset-0 opacity-30">
             <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,white,transparent_28%)]" />
-          </div>
+          </div_
 
           <div className="relative mx-auto grid min-h-[720px] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_.95fr] lg:px-8">
-            <div className="max-w-2xl">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="max-w-2xl"
+            >
               <p className="inline-flex rounded-md border border-white/25 bg-white/10 px-3 py-1 text-sm font-semibold text-blue-50">
                 Sistema digital para emissao de recibos
               </p>
               <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
                 Recibos profissionais em segundos
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-blue-50">
+              <p className="mt-6 max-w-xl text-lg leading-8 text-blue-100">
                 Abandone recibos improvisados e organize sua rotina com um sistema online rapido, seguro e preparado para empresas, lojas e prestadores de servico.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/gerar" className="rounded-md bg-white px-6 py-3 text-center font-bold text-blue-800 shadow-xl shadow-blue-950/20 transition hover:bg-blue-50">
+                <Link href="/gerar" className="rounded-md bg-white px-6 py-3 text-center font-bold text-blue-800 shadow-xl shadow-blue-950/20 transition hover:bg-blue-50 active:scale-95">
                   Gerar recibo agora
                 </Link>
-                <Link href="/exemplo" className="rounded-md border border-white/30 px-6 py-3 text-center font-bold text-white transition hover:bg-white/10">
+                <Link href="/exemplo" className="rounded-md border border-white/30 px-6 py-3 text-center font-bold text-white transition hover:bg-white/10 active:scale-95">
                   Ver exemplo
                 </Link>
               </div>
@@ -142,11 +148,16 @@ export default function HomePage() {
                   </span>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="relative">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative"
+            >
               <div className="absolute -inset-4 rounded-full bg-white/10 blur-3xl" />
-              <div className="relative overflow-hidden rounded-md border border-white/20 bg-white text-slate-950 shadow-2xl shadow-blue-950/40">
+              <div className="relative overflow-hidden rounded-md border border-white/20 bg-white text-slate-950 shadow-2xl shadow-blue-950/40 transition-transform duration-300 hover:scale-[1.02]">
                 <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -167,7 +178,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -182,12 +193,19 @@ export default function HomePage() {
                 ['1', 'Escolha o tipo', 'Selecione o modelo ideal para sua situacao.'],
                 ['2', 'Preencha os dados', 'Informe pagador, recebedor, valor e referencia.'],
                 ['3', 'Baixe o PDF', 'Visualize, imprima ou salve o recibo profissional.'],
-              ].map(([number, title, description]) => (
-                <article key={title} className="rounded-md border border-slate-200 bg-white p-6">
+              ].map(([number, title, description], idx) => (
+                <motion.article 
+                  key={title} 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
+                  className="rounded-md border border-slate-200 bg-white p-6 hover:shadow-md transition-shadow"
+                >
                   <div className="text-5xl font-bold text-blue-100">{number}</div>
                   <h3 className="mt-4 text-xl font-bold">{title}</h3>
                   <p className="mt-2 text-slate-600">{description}</p>
-                </article>
+                </motion.article>
               ))}
             </div>
           </div>
@@ -295,22 +313,38 @@ export default function HomePage() {
 
         <section className="bg-slate-950 px-4 py-20 text-white sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2">
-            <div className="rounded-md border border-white/10 bg-white/5 p-6">
-              <h3 className="text-2xl font-bold">Metodo tradicional</h3>
+            <div className="rounded-md border border-white/10 bg-white/5 p-6 transition-colors hover:bg-white/10">
+              <h3 className="text-2xl font-bold text-slate-400">Metodo tradicional</h3>
               <ul className="mt-6 space-y-3 text-slate-300">
-                <li>Recibos espalhados em arquivos diferentes</li>
-                <li>Dados repetidos digitados varias vezes</li>
-                <li>Dificuldade para consultar historico</li>
-                <li>Aparencia menos profissional</li>
+                <li className="flex items-center gap-2">
+                  <span className="text-red-500">✕</span> Recibos espalhados em arquivos diferentes
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-red-500">✕</span> Dados repetidos digitados varias vezes
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-red-500">✕</span> Dificuldade para consultar historico
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-red-500">✕</span> Aparencia menos profissional
+                </li>
               </ul>
             </div>
-            <div className="rounded-md border border-blue-300/30 bg-blue-600 p-6">
+            <div className="rounded-md border border-blue-300/30 bg-blue-600 p-6 shadow-xl shadow-blue-500/20 transition-transform hover:scale-[1.02]">
               <h3 className="text-2xl font-bold">Com ReciboPro</h3>
               <ul className="mt-6 space-y-3 text-blue-50">
-                <li>Emissao rapida e padronizada</li>
-                <li>Historico online e organizado</li>
-                <li>PDF profissional pronto para compartilhar</li>
-                <li>Controle para lojas, equipes e gestores</li>
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-300">✓</span> Emissao rapida e padronizada
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-300">✓</span> Historico online e organizado
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-300">✓</span> PDF profissional pronto para compartilhar
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-300">✓</span> Controle para lojas, equipes e gestores
+                </li>
               </ul>
             </div>
           </div>

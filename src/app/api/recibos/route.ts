@@ -85,8 +85,12 @@ export async function POST(request: Request) {
   if (companyId) {
     const plan = await getCompanyPlan(supabase, companyId);
     if (canAccessFeature(plan, 'sequential_numbering')) {
-      const { data } = await supabase.rpc('get_next_receipt_number', { company_id: companyId });
-      numero_sequencial = data;
+      const { data, error: rpcError } = await supabase.rpc('get_next_receipt_number', { p_company_id: companyId });
+      if (rpcError) {
+        console.error('Erro ao obter número sequencial:', rpcError);
+      } else {
+        numero_sequencial = data;
+      }
     }
   }
 

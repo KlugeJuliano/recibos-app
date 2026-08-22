@@ -15,15 +15,34 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isValidToken, setIsValidToken] = useState(true);
+  const [isExchangingCode, setIsExchangingCode] = useState(true);
 
   useEffect(() => {
     const code = searchParams.get('code');
-    const type = searchParams.get('type');
-    
-    if (!code || type !== 'recovery') {
+
+    if (!code) {
       setIsValidToken(false);
+      setIsExchangingCode(false);
       setError('Link de recuperação inválido ou expirado. Solicite um novo link.');
+      return;
     }
+
+    const exchangeCode = async () => {
+      if (!isSupabaseConfigured) {
+        setIsExchangingCode(false);
+        return;
+      }
+      const supabase = createClient();
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (exchangeError) {
+        setIsValidToken(false);
+        setError('Link de recuperação inválido ou expirado. Solicite um novo link.');
+      }
+      setIsExchangingCode(false);
+    };
+
+    exchangeCode();
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,6 +96,29 @@ function ResetPasswordForm() {
       setIsLoading(false);
     }
   };
+
+  if (isExchangingCode) {
+    return (
+      <main className="grid min-h-screen bg-[#f7f8f4] text-slate-950 lg:grid-cols-[1.05fr_.95fr]">
+        <section className="hidden bg-slate-950 px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between">
+          <Link href="/" className="flex items-center gap-3" aria-label="Recibos App">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-400">
+              <Image src="/invoice.svg" alt="" width={24} height={24} className="invert" />
+            </span>
+            <span className="text-lg font-semibold">Recibos App</span>
+          </Link>
+        </section>
+        <section className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
+          <div className="w-full max-w-md rounded-md border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+              <span className="sr-only">Validando link de recuperação...</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (!isValidToken) {
     return (

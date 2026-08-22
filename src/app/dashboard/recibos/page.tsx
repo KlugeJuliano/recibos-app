@@ -1,11 +1,16 @@
 'use client';
 
 import ReciboPrint from './impressaoRecibo'; 
-import { useState } from 'react'; 
+import { useState, useEffect } from 'react'; 
+import { createClient } from '@/utils/supabase/client';
+import { getUserProfile } from '@/utils/supabase/profile';
+import { CompanyRepository } from '@/app/repositories/CompanyRepository';
+import { getCompanyPlan, canAccessFeature } from '@/app/lib/planGuard';
 import './print.css';
 
 export default function RecibosPage() { 
   const [form, setForm] = useState({
+    id: '',
     dataRecibo: new Date().toISOString().split('T')[0],
     time: '',
     lojaId: '',
@@ -24,6 +29,66 @@ export default function RecibosPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [companyPlan, setCompanyPlan] = useState<'free' | 'pro' | 'business'>('free');
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState(false);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    loadCompanyPlan();
+  }, []);
+
+  const loadCompanyPlan = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const profile = await getUserProfile(supabase, user.id);
+      if (profile?.companyId) {
+        const plan = await CompanyRepository.getCompanyPlan(supabase, profile.companyId);
+        setCompanyPlan(plan);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar plano da empresa:', error);
+    }
+  };
+
+  const canSendEmail = canAccessFeature(companyPlan, 'auto_send');
+
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailSuccess(false);
+    setIsSendingEmail(true);
+
+    try {
+      const response = await fetch(`/api/recibos/${form.id}/enviar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailTo }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar e-mail.');
+      }
+
+      setEmailSuccess(true);
+      setEmailTo('');
+      setTimeout(() => {
+        setShowEmailModal(false);
+        setEmailSuccess(false);
+      }, 2000);
+    } catch (error) {
+      setEmailError(error instanceof Error ? error.message : 'Erro ao enviar e-mail.');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   function validarHorario(horarios: {
     horaInicio: string;
@@ -139,6 +204,7 @@ export default function RecibosPage() {
 
   const resetForm = () => {
     setForm({
+      id: '',
       dataRecibo: new Date().toISOString().split('T')[0],
       time: '',
       lojaId: '',
@@ -190,9 +256,12 @@ export default function RecibosPage() {
       throw new Error(body?.error || 'O recibo não pôde ser salvo.');
     }
 
+    const createdRecibo = await response.json();
+    
     setForm((prev) => ({
       ...prev,
-      valorPagamento: valorPagamento.toFixed(2)
+      valorPagamento: valorPagamento.toFixed(2),
+      id: createdRecibo.id,
     }));
 
     setMostrarRecibo(true);
@@ -459,9 +528,72 @@ export default function RecibosPage() {
                 }}
                 onClose={() => setMostrarRecibo(false)}
               />
+              
+              {/* Email button */}
+              {canSendEmail && (
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => setShowEmailModal(true)}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
+                  >
+                    Enviar por e-mail
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </>
+      )}
+
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 print:hidden">
+          <div className="bg-white p-6 rounded-xl shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Enviar recibo por e-mail</h3>
+            <form onSubmit={handleSendEmail} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email do destinatário</label>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  placeholder="destinatario@exemplo.com"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
+                />
+              </div>
+              
+              {emailError && (
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {emailError}
+                </div>
+              )}
+              
+              {emailSuccess && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                  E-mail enviado com sucesso!
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="px-4 py-2 border rounded-md bg-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-md"
+                  disabled={isSendingEmail}
+                >
+                  {isSendingEmail ? 'Enviando...' : 'Enviar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );

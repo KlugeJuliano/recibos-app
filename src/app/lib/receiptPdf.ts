@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Page, StyleSheet, Text, View, Image } from '@react-pdf/renderer';
 
 export type ReceiptPdfRecord = {
   id?: string;
@@ -17,6 +17,8 @@ export type ReceiptPdfRecord = {
   loja?: string;
   cidade?: string;
   dados?: Record<string, unknown>;
+  logo_url?: string;
+  company_name?: string;
 };
 
 const styles = StyleSheet.create({
@@ -183,6 +185,7 @@ export function ReceiptPdf({ recibo }: { recibo: ReceiptPdfRecord }) {
   const date = formatDate(recibo.dataRecibo);
   const cidade = recibo.cidade || 'Sao Paulo';
   const shouldShowTimeDetails = !recibo.tipo || recibo.tipo === 'trabalhista';
+  const companyName = recibo.company_name ?? 'ReciboPro';
 
   return React.createElement(
     Document,
@@ -190,7 +193,11 @@ export function ReceiptPdf({ recibo }: { recibo: ReceiptPdfRecord }) {
     React.createElement(
       Page,
       { size: 'A4', style: styles.page },
-      React.createElement(Text, { style: styles.eyebrow }, 'ReciboPro'),
+      React.createElement(Text, { style: styles.eyebrow }, companyName),
+      recibo.logo_url && React.createElement(Image, {
+        src: recibo.logo_url,
+        style: { width: 140, height: 70, marginBottom: 20, objectFit: 'contain', alignSelf: 'center' }
+      }),
       React.createElement(Text, { style: styles.title }, receiptTitle(recibo.tipo)),
       React.createElement(Text, { style: styles.meta }, `Nº ${id}`),
       React.createElement(

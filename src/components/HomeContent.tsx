@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { receiptTypes } from '@/app/lib/receiptTypes';
+import { FEATURES_BY_PLAN, type Feature, type Plan } from '@/app/lib/planGuard';
 
 const heroBadges = ['100% online', 'PDF profissional', 'Sem instalacao'];
 
@@ -74,6 +75,23 @@ const faqs = [
     question: 'O recibo substitui nota fiscal?',
     answer: 'Nao. O recibo comprova pagamento, mas nao substitui documentos fiscais exigidos por lei.',
   },
+];
+
+const featureLabels: Record<Feature, string> = {
+  history: 'Histórico de emissões',
+  logo: 'Logotipo personalizado no PDF',
+  sequential_numbering: 'Numeração sequencial automática',
+  auto_send: 'Envio automático por e-mail',
+  recurring_receipts: 'Recibos recorrentes/agendados',
+  multi_user: 'Múltiplos usuários (equipe)',
+  multi_store: 'Múltiplas lojas/filiais',
+  consolidated_reports: 'Relatórios consolidados',
+};
+
+const plans: { key: Plan; name: string; price: string; cta: string; href: string; popular?: boolean }[] = [
+  { key: 'free', name: 'Free', price: 'Grátis', cta: 'Começar grátis', href: '/login?signup=true' },
+  { key: 'pro', name: 'Pro', price: 'Em breve', cta: 'Entrar na lista de espera', href: '/planos/pro', popular: true },
+  { key: 'business', name: 'Business', price: 'Em breve', cta: 'Entrar na lista de espera', href: '/planos/business' },
 ];
 
 export default function HomeContent() {
@@ -348,7 +366,7 @@ export default function HomeContent() {
         </section>
 
         <section id="planos" className="bg-slate-50 px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-7xl">
             <div className="text-center">
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-700">Planos</p>
               <h2 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">
@@ -356,40 +374,59 @@ export default function HomeContent() {
               </h2>
             </div>
 
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
-              <article className="rounded-md border-2 border-blue-700 bg-white p-7 shadow-lg">
-                <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-700">Essencial</p>
-                <h3 className="mt-3 text-3xl font-bold text-slate-950">Teste gratis</h3>
-                <p className="mt-3 text-slate-600">Para validar o fluxo e comecar a emitir recibos profissionais.</p>
-                <ul className="mt-6 space-y-3 text-sm text-slate-700">
-                  <li>Recibos profissionais</li>
-                  <li>Gerador online</li>
-                  <li>Exportacao para PDF</li>
-                  <li>Historico de emissoes</li>
-                </ul>
-                <Link href="/login?signup=true" className="mt-7 block rounded-md bg-blue-700 px-5 py-3 text-center font-bold text-white transition hover:bg-blue-800">
-                  Comecar agora
-                </Link>
-              </article>
-
-              <article className="rounded-md border border-slate-200 bg-white p-7">
-                <p className="text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Profissional</p>
-                <h3 className="mt-3 text-3xl font-bold text-slate-950">Em breve</h3>
-                <p className="mt-3 text-slate-600">Para equipes, multiplas lojas e rotinas com maior volume.</p>
-                <ul className="mt-6 space-y-3 text-sm text-slate-700">
-                  <li>Tudo do Essencial</li>
-                  <li>Multiplos usuarios</li>
-                  <li>Relatorios avancados</li>
-                  <li>Suporte prioritario</li>
-                </ul>
-                <button 
-                  className="mt-7 block w-full rounded-md bg-blue-700 px-5 py-3 text-center font-bold text-white transition hover:bg-blue-800 active:scale-95" 
-                  type="button"
-                  onClick={() => alert('Você será notificado assim que o plano profissional for lançado!')}
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
+              {plans.map(({ key, name, price, cta, href, popular }) => (
+                <article 
+                  key={key} 
+                  className={`rounded-xl border-2 p-7 relative transition-all ${
+                    popular 
+                      ? 'border-blue-600 shadow-xl shadow-blue-600/20 ring-2 ring-blue-600' 
+                      : 'border-slate-200 hover:border-slate-300'
+                  } ${popular ? 'scale-[1.02] z-10' : ''}`}
                 >
-                  Entrar na lista de espera
-                </button>
-              </article>
+                  {popular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                      Mais popular
+                    </span>
+                  )}
+                  <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-700">{name}</p>
+                  <h3 className="mt-2 text-3xl font-bold text-slate-950">{price}</h3>
+                  <ul className="mt-6 space-y-3 text-sm text-slate-700">
+                    {FEATURES_BY_PLAN[key].map((feature) => (
+                      <li key={feature} className="flex items-center gap-2">
+                        <span className="h-5 w-5 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                        {featureLabels[feature]}
+                      </li>
+                    ))}
+                    {Object.keys(featureLabels)
+                      .filter((f) => !FEATURES_BY_PLAN[key].includes(f as Feature))
+                      .map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-slate-400 line-through">
+                          <span className="h-5 w-5 flex items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </span>
+                          {featureLabels[f as Feature]}
+                        </li>
+                      ))}
+                  </ul>
+                  <Link 
+                    href={href} 
+                    className={`mt-7 block w-full rounded-md px-5 py-3 text-center font-bold transition ${
+                      popular 
+                        ? 'bg-blue-700 text-white hover:bg-blue-800' 
+                        : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {cta}
+                  </Link>
+                </article>
+              ))}
             </div>
           </div>
         </section>

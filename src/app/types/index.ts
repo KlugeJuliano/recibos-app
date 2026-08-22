@@ -2,6 +2,10 @@ export type Company = {
     id: string;
     name: string;
     cnpj: string;
+    logo_url?: string;
+    plan?: 'free' | 'pro' | 'business';
+    plan_status?: 'active' | 'past_due' | 'canceled';
+    next_receipt_number?: number;
 }
 
 export type Sector = {

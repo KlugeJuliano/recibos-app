@@ -1,5 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getUserProfile } from '@/utils/supabase/profile';
+import { CompanyRepository } from '@/app/repositories/CompanyRepository';
+import { getCompanyPlan, canAccessFeature } from '@/app/lib/planGuard';
 
 export async function GET() {
   const supabase = await createClient();
@@ -77,6 +79,17 @@ export async function POST(request: Request) {
     console.error('Não foi possível carregar o perfil do usuário:', error);
   }
   const lojaId = payload.lojaId || payload.loja_id || profile?.lojaId;
+  const companyId = profile?.companyId;
+
+  let numero_sequencial = null;
+  if (companyId) {
+    const plan = await getCompanyPlan(supabase, companyId);
+    if (canAccessFeature(plan, 'sequential_numbering')) {
+      const { data } = await supabase.rpc('get_next_receipt_number', { company_id: companyId });
+      numero_sequencial = data;
+    }
+  }
+
   const recibo = {
     ...payload,
     id: payload.id || crypto.randomUUID(),
@@ -84,6 +97,7 @@ export async function POST(request: Request) {
     lojaId,
     loja_id: lojaId,
     valorPagamento, // Sobrescreve com o valor calculado no servidor
+    numero_sequencial,
   };
 
   if (!lojaId) {

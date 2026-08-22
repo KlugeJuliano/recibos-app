@@ -6,6 +6,8 @@ import { createClient } from '@/utils/supabase/client';
 import { StoreRepository } from '@/app/repositories/StoreRepository';
 import { CompanyRepository } from '@/app/repositories/CompanyRepository';
 import { SectorRepository } from '@/app/repositories/SectionRepository';
+import { getCompanyPlan, canAccessFeature } from '@/app/lib/planGuard';
+import { getUserProfile } from '@/utils/supabase/profile';
 
 export default function StoreManagement() {
   const supabase = createClient();
@@ -17,6 +19,7 @@ export default function StoreManagement() {
   const [filteredStores, setFilteredStores] = useState<Loja[]>([]);
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [companyPlan, setCompanyPlan] = useState<'free' | 'pro' | 'business'>('free');
   
   const [formData, setFormData] = useState<Omit<Loja, 'sectors'> & {selectedSectors: string[]}>({
     id: '',
@@ -30,6 +33,7 @@ export default function StoreManagement() {
 
   useEffect(() => {
     loadData();
+    loadCompanyPlan();
   }, []);
 
   const loadData = async () => {
@@ -49,6 +53,20 @@ export default function StoreManagement() {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCompanyPlan = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const profile = await getUserProfile(supabase, user.id);
+      if (profile?.companyId) {
+        const plan = await CompanyRepository.getCompanyPlan(supabase, profile.companyId);
+        setCompanyPlan(plan);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar plano da empresa:', error);
     }
   };
 
@@ -207,6 +225,11 @@ export default function StoreManagement() {
     });
   };
 
+  const canAddStore = canAccessFeature(companyPlan, 'multi_store') || stores.length === 0;
+  const blockReason = companyPlan === 'free' && stores.length > 0 
+    ? 'Plano Free permite apenas 1 loja. Faça upgrade para Pro ou Business para múltiplas lojas.'
+    : '';
+
   // Handle company filter change
   const handleCompanyFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const companyId = e.target.value;
@@ -226,13 +249,27 @@ export default function StoreManagement() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-800">Gerenciamento de Lojas</h2>
-        <button
-          onClick={handleAddNew}
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+        <button 
+          onClick={handleAddNew} 
+          disabled={!canAddStore}
+          className={`px-4 py-2 rounded transition ${canAddStore 
+            ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+          title={blockReason}
         >
           Nova Loja
         </button>
       </div>
+
+      {blockReason && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-amber-800 text-sm">{blockReason}</p>
+          <a href="/login?signup=true" className="mt-2 inline-block text-amber-600 hover:text-amber-700 underline text-sm">
+            Ver planos disponíveis
+          </a>
+        </div>
+      )}
 
       {/* Company Filter */}
       <div className="mb-4">

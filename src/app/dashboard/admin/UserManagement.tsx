@@ -5,6 +5,9 @@ import { Users, Loja } from '@/app/types';
 import { createClient } from '@/utils/supabase/client';
 import { UserRepository } from '@/app/repositories/UserRepository';
 import { StoreRepository } from '@/app/repositories/StoreRepository';
+import { CompanyRepository } from '@/app/repositories/CompanyRepository';
+import { getCompanyPlan, canAccessFeature } from '@/app/lib/planGuard';
+import { getUserProfile } from '@/utils/supabase/profile';
 
 export default function UserManagement() {
   const supabase = createClient();
@@ -13,6 +16,7 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<Users | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [companyPlan, setCompanyPlan] = useState<'free' | 'pro' | 'business'>('free');
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -24,6 +28,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     loadData();
+    loadCompanyPlan();
   }, []);
 
   const loadData = async () => {
@@ -39,6 +44,20 @@ export default function UserManagement() {
       console.error('Erro ao carregar dados de usuários:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCompanyPlan = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const profile = await getUserProfile(supabase, user.id);
+      if (profile?.companyId) {
+        const plan = await CompanyRepository.getCompanyPlan(supabase, profile.companyId);
+        setCompanyPlan(plan);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar plano da empresa:', error);
     }
   };
 
@@ -139,6 +158,11 @@ export default function UserManagement() {
     });
   };
 
+  const canAddUser = canAccessFeature(companyPlan, 'multi_user') || users.length === 0;
+  const blockReason = companyPlan === 'free' && users.length > 0 
+    ? 'Plano Free permite apenas 1 usuário (admin). Faça upgrade para Pro ou Business para adicionar equipe.'
+    : '';
+
   if (isLoading && users.length === 0) {
     return <div className="p-8 text-center text-gray-500">Carregando usuários...</div>;
   }
@@ -147,10 +171,27 @@ export default function UserManagement() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-800">Gerenciamento de Usuários</h2>
-        <button onClick={handleAddNew} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+        <button 
+          onClick={handleAddNew} 
+          disabled={!canAddUser}
+          className={`px-4 py-2 rounded transition ${canAddUser 
+            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+          title={blockReason}
+        >
           Novo Perfil
         </button>
       </div>
+
+      {blockReason && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-amber-800 text-sm">{blockReason}</p>
+          <a href="/login?signup=true" className="mt-2 inline-block text-amber-600 hover:text-amber-700 underline text-sm">
+            Ver planos disponíveis
+          </a>
+        </div>
+      )}
 
       <p className="text-sm text-gray-500">
         Novos usuários devem criar a conta pela tela de login. Aqui você administra o perfil já vinculado ao ID do usuário no Supabase Auth.

@@ -304,6 +304,14 @@ function LoginForm() {
               {isSignUp ? 'Fazer login' : 'Cadastrar empresa'}
             </button>
           </p>
+          
+          {!isSignUp && (
+            <p className="mt-4 text-center text-sm text-slate-500">
+              <Link href="/login/forgot-password" className="font-semibold text-emerald-700 hover:text-emerald-800">
+                Esqueceu a senha?
+              </Link>
+            </p>
+          )}
         </div>
       </section>
     </main>

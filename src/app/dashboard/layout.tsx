@@ -1,5 +1,6 @@
 // app/dashboard/layout.tsx
 import type { ReactNode } from 'react';
+import { Metadata } from 'next';
 import { createClient } from '@/utils/supabase/server';
 import { ensureUserProfile, getUserProfile } from '@/utils/supabase/profile';
 import DashboardHeader from './DashboardHeader';
@@ -7,6 +8,13 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();

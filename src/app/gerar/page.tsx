@@ -268,7 +268,7 @@ function FreeGenerator() {
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[280px_1fr_380px] lg:px-8">
         <aside className="rounded-md border border-slate-200 bg-white p-4">
-          <h1 className="text-lg font-bold">Tipo de recibo</h1>
+          <p className="text-lg font-bold">Tipo de recibo</p>
           <div className="mt-4 space-y-2">
             {receiptTypes.map((type) => (
               <button
@@ -297,7 +297,7 @@ function FreeGenerator() {
 
         <section className="rounded-md border border-slate-200 bg-white p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">Gerador gratuito</p>
-          <h2 className="mt-2 text-2xl font-bold">Recibo de {currentType.name}</h2>
+          <h1 className="mt-2 text-2xl font-bold">Recibo de {currentType.name}</h1>
           <p className="mt-2 text-sm text-slate-600">{currentType.description}</p>
 
           {message && (

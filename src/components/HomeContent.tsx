@@ -141,7 +141,7 @@ export default function HomeContent() {
                 Sistema digital para emissao de recibos
               </p>
               <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-                Recibos profissionais em segundos
+                Gerador de recibo online grátis — recibos profissionais em segundos
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-blue-100">
                 Abandone recibos improvisados e organize sua rotina com um sistema online rapido, seguro e preparado para empresas, lojas e prestadores de servico.

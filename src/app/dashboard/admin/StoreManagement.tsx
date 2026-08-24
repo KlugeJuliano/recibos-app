@@ -20,6 +20,7 @@ export default function StoreManagement() {
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [companyPlan, setCompanyPlan] = useState<'free' | 'pro' | 'business'>('free');
+  const [generalError, setGeneralError] = useState('');
   
   const [formData, setFormData] = useState<Omit<Loja, 'sectors'> & {selectedSectors: string[]}>({
     id: '',
@@ -146,6 +147,7 @@ export default function StoreManagement() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setGeneralError('');
     
     try {
       const selectedSectorObjects = allSectors.filter(sector => 
@@ -163,17 +165,26 @@ export default function StoreManagement() {
         sectors: selectedSectorObjects 
       };
 
-      if (editingStore) {
-        await StoreRepository.update(supabase, editingStore.id, storeToSave);
-      } else {
-        await StoreRepository.add(supabase, storeToSave);
+      const url = editingStore ? `/api/admin/lojas/${editingStore.id}` : '/api/admin/lojas';
+      const method = editingStore ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(storeToSave),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao salvar loja.');
       }
       
       await loadData();
       handleCancel();
     } catch (error) {
       console.error('Erro ao salvar loja:', error);
-      alert('Erro ao salvar loja. Verifique o console.');
+      setGeneralError(error instanceof Error ? error.message : 'Erro ao salvar loja.');
     } finally {
       setIsLoading(false);
     }
@@ -184,11 +195,21 @@ export default function StoreManagement() {
     if (confirm('Tem certeza que deseja excluir esta loja? Isso pode afetar usuários vinculados a ela.')) {
       try {
         setIsLoading(true);
-        await StoreRepository.delete(supabase, storeId);
+        
+        const response = await fetch(`/api/admin/lojas/${storeId}`, {
+          method: 'DELETE',
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao excluir loja.');
+        }
+        
         await loadData();
       } catch (error) {
         console.error('Erro ao excluir loja:', error);
-        alert('Erro ao excluir loja.');
+        setGeneralError(error instanceof Error ? error.message : 'Erro ao excluir loja.');
       } finally {
         setIsLoading(false);
       }
@@ -268,6 +289,12 @@ export default function StoreManagement() {
           <a href="/login?signup=true" className="mt-2 inline-block text-amber-600 hover:text-amber-700 underline text-sm">
             Ver planos disponíveis
           </a>
+        </div>
+      )}
+
+      {generalError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 text-sm">{generalError}</p>
         </div>
       )}
 

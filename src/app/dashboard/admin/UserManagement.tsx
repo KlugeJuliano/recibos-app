@@ -17,6 +17,7 @@ export default function UserManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [companyPlan, setCompanyPlan] = useState<'free' | 'pro' | 'business'>('free');
+  const [generalError, setGeneralError] = useState('');
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -90,6 +91,7 @@ export default function UserManagement() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setGeneralError('');
     
     try {
       const userToSave = {
@@ -101,17 +103,26 @@ export default function UserManagement() {
         companyId: formData.companyId
       };
 
-      if (editingUser) {
-        await UserRepository.update(supabase, editingUser.id, userToSave);
-      } else {
-        await UserRepository.add(supabase, userToSave);
+      const url = editingUser ? `/api/admin/usuarios/${editingUser.id}` : '/api/admin/usuarios';
+      const method = editingUser ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userToSave),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao salvar usuário.');
       }
       
       await loadData();
       handleCancel();
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
-      alert('Erro ao salvar usuário.');
+      setGeneralError(error instanceof Error ? error.message : 'Erro ao salvar usuário.');
     } finally {
       setIsLoading(false);
     }
@@ -121,11 +132,21 @@ export default function UserManagement() {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
       try {
         setIsLoading(true);
-        await UserRepository.delete(supabase, userId);
+        
+        const response = await fetch(`/api/admin/usuarios/${userId}`, {
+          method: 'DELETE',
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao excluir usuário.');
+        }
+        
         await loadData();
       } catch (error) {
         console.error('Erro ao excluir usuário:', error);
-        alert('Erro ao excluir usuário.');
+        setGeneralError(error instanceof Error ? error.message : 'Erro ao excluir usuário.');
       } finally {
         setIsLoading(false);
       }
@@ -190,6 +211,12 @@ export default function UserManagement() {
           <a href="/login?signup=true" className="mt-2 inline-block text-amber-600 hover:text-amber-700 underline text-sm">
             Ver planos disponíveis
           </a>
+        </div>
+      )}
+
+      {generalError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 text-sm">{generalError}</p>
         </div>
       )}
 

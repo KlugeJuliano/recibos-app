@@ -77,5 +77,14 @@ export const UserRepository = {
       return null;
     }
     return toUser(data as UserRow);
+  },
+
+  async countRecibosByUser(supabase: SupabaseClient, userId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('recibos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    if (error) throw error;
+    return count ?? 0;
   }
 };

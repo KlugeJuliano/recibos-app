@@ -58,5 +58,14 @@ export const StoreRepository = {
     const { data, error } = await supabase.from('stores').select('*').eq('company_id', companyId);
     if (error) throw error;
     return data || [];
+  },
+
+  async countRecibosByStore(supabase: SupabaseClient, lojaId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('recibos')
+      .select('*', { count: 'exact', head: true })
+      .eq('loja_id', lojaId);
+    if (error) throw error;
+    return count ?? 0;
   }
 };

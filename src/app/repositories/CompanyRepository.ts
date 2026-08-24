@@ -73,5 +73,24 @@ export const CompanyRepository = {
       .eq('company_id', companyId);
     if (error) throw error;
     return count ?? 0;
+  },
+
+  async countUsersExcluding(supabase: SupabaseClient, companyId: string, excludeUserId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .neq('id', excludeUserId);
+    if (error) throw error;
+    return count ?? 0;
+  },
+
+  async countRecibos(supabase: SupabaseClient, companyId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('recibos')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId);
+    if (error) throw error;
+    return count ?? 0;
   }
 };

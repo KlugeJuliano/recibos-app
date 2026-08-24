@@ -20,6 +20,8 @@ export default function CompanyManagement() {
   const [companyPlan, setCompanyPlan] = useState<'free' | 'pro' | 'business'>('free');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [generalError, setGeneralError] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Omit<Company, 'id'> & {id?: string}>({
     name: '',
     cnpj: '',
@@ -46,6 +48,7 @@ export default function CompanyManagement() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setCurrentUserId(user.id);
       const profile = await getUserProfile(supabase, user.id);
       if (profile?.companyId) {
         const plan = await CompanyRepository.getCompanyPlan(supabase, profile.companyId);
@@ -65,6 +68,7 @@ export default function CompanyManagement() {
     setEditingCompany(company);
     setIsModalOpen(true);
     setActiveTab('dados');
+    setGeneralError('');
     setFormData({
       id: company.id,
       name: company.name,
@@ -94,6 +98,7 @@ export default function CompanyManagement() {
   // Save company changes (dados tab)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGeneralError('');
     setIsLoading(true);
     
     try {
@@ -113,7 +118,16 @@ export default function CompanyManagement() {
       handleCancel();
     } catch (error) {
       console.error('Erro ao salvar empresa:', error);
-      alert('Erro ao salvar empresa.');
+      let message = 'Erro ao salvar empresa.';
+      if (error instanceof Error) {
+        // Check for duplicate CNPJ error (PostgreSQL unique constraint violation)
+        if (error.message.includes('23505') || error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+          message = 'Já existe uma empresa cadastrada com este CNPJ.';
+        } else {
+          message = error.message;
+        }
+      }
+      setGeneralError(message);
     } finally {
       setIsLoading(false);
     }
@@ -138,7 +152,7 @@ export default function CompanyManagement() {
     const file = fileInput?.files?.[0];
     
     if (!file) {
-      alert('Selecione um arquivo de imagem.');
+      setGeneralError('Selecione um arquivo de imagem.');
       return;
     }
 
@@ -160,10 +174,10 @@ export default function CompanyManagement() {
       }
       
       setLogoPreview(data.logoUrl);
-      alert('Logotipo atualizado com sucesso!');
+      setGeneralError('Logotipo atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao fazer upload do logotipo:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao fazer upload do logotipo.');
+      setGeneralError(error instanceof Error ? error.message : 'Erro ao fazer upload do logotipo.');
     } finally {
       setLogoUploading(false);
     }
@@ -173,12 +187,36 @@ export default function CompanyManagement() {
   const handleDelete = async (companyId: string) => {
     if (confirm('Tem certeza que deseja excluir esta empresa? Isso pode afetar lojas e usuários vinculados a ela.')) {
       try {
+        setGeneralError('');
         setIsLoading(true);
+        
+        if (!currentUserId) {
+          throw new Error('Usuário não autenticado.');
+        }
+        
+        // Proactive checks for related records
+        const [userCount, storeCount, reciboCount] = await Promise.all([
+          CompanyRepository.countUsersExcluding(supabase, companyId, currentUserId),
+          CompanyRepository.countStores(supabase, companyId),
+          CompanyRepository.countRecibos(supabase, companyId),
+        ]);
+
+        if (userCount > 0 || storeCount > 0 || reciboCount > 0) {
+          const details = [];
+          if (userCount > 0) details.push(`${userCount} usuário(s) além do admin`);
+          if (storeCount > 0) details.push(`${storeCount} loja(s)`);
+          if (reciboCount > 0) details.push(`${reciboCount} recibo(s)`);
+          
+          setGeneralError(`Não é possível excluir: esta empresa tem ${details.join(', ')} vinculado(s). Remova-os primeiro.`);
+          return;
+        }
+
         await CompanyRepository.delete(supabase, companyId);
         await loadCompanies();
       } catch (error) {
         console.error('Erro ao excluir empresa:', error);
-        alert('Erro ao excluir empresa.');
+        const message = error instanceof Error ? error.message : 'Erro ao excluir empresa.';
+        setGeneralError(message);
       } finally {
         setIsLoading(false);
       }
@@ -189,6 +227,7 @@ export default function CompanyManagement() {
   const handleCancel = () => {
     setIsModalOpen(false);
     setEditingCompany(null);
+    setGeneralError('');
     setFormData({
       name: '',
       cnpj: '',
@@ -200,6 +239,7 @@ export default function CompanyManagement() {
     setIsModalOpen(true);
     setEditingCompany(null);
     setActiveTab('dados');
+    setGeneralError('');
     setFormData({
       name: '',
       cnpj: '',
@@ -248,6 +288,12 @@ export default function CompanyManagement() {
         </table>
       </div>
 
+      {generalError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 text-sm">{generalError}</p>
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -259,6 +305,12 @@ export default function CompanyManagement() {
                 </svg>
               </button>
             </div>
+
+            {generalError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-red-800 text-sm">{generalError}</p>
+              </div>
+            )}
 
             {/* Tabs */}
             <div className="border-b border-gray-200 mb-4">

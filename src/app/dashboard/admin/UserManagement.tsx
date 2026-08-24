@@ -128,10 +128,20 @@ export default function UserManagement() {
     }
   };
 
+  // Delete user
   const handleDelete = async (userId: string) => {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
       try {
+        setGeneralError('');
         setIsLoading(true);
+        
+        // Proactive check for receipts linked to this user
+        const reciboCount = await UserRepository.countRecibosByUser(supabase, userId);
+        
+        if (reciboCount > 0) {
+          setGeneralError(`Não é possível excluir: este usuário tem ${reciboCount} recibo(s) vinculado(s). Remova-os primeiro.`);
+          return;
+        }
         
         const response = await fetch(`/api/admin/usuarios/${userId}`, {
           method: 'DELETE',

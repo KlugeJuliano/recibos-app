@@ -194,7 +194,16 @@ export default function StoreManagement() {
   const handleDelete = async (storeId: string) => {
     if (confirm('Tem certeza que deseja excluir esta loja? Isso pode afetar usuários vinculados a ela.')) {
       try {
+        setGeneralError('');
         setIsLoading(true);
+        
+        // Proactive check for receipts linked to this store
+        const reciboCount = await StoreRepository.countRecibosByStore(supabase, storeId);
+        
+        if (reciboCount > 0) {
+          setGeneralError(`Não é possível excluir: esta loja tem ${reciboCount} recibo(s) vinculado(s). Remova-os primeiro.`);
+          return;
+        }
         
         const response = await fetch(`/api/admin/lojas/${storeId}`, {
           method: 'DELETE',

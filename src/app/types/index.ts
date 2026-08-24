@@ -31,6 +31,7 @@ export type Users = {
     lojaId: string;
     role: string;
     email:string;
+    is_super_admin: boolean;
 }
 
 export type Recibos = {
@@ -50,3 +51,6 @@ export type Recibos = {
     valorPagamento: number;
 
 }
+
+// Test type to verify is_super_admin is recognized
+export type TestUsers = Users & { is_super_admin: boolean };

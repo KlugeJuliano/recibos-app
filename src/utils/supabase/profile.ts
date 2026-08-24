@@ -7,6 +7,7 @@ type ProfileSeed = {
   role?: string
   companyId?: string
   lojaId?: string
+  is_super_admin?: boolean
 }
 
 type UserProfileRow = {
@@ -18,6 +19,7 @@ type UserProfileRow = {
   loja_id?: string | null
   companyId?: string | null
   lojaId?: string | null
+  is_super_admin?: boolean | null
 }
 
 function toUsers(row: UserProfileRow): Users {
@@ -28,6 +30,7 @@ function toUsers(row: UserProfileRow): Users {
     role: row.role ?? 'funcionario',
     companyId: row.company_id ?? row.companyId ?? '',
     lojaId: row.loja_id ?? row.lojaId ?? '',
+    is_super_admin: row.is_super_admin ?? false,
   }
 }
 
@@ -44,6 +47,7 @@ function getDefaultProfile(user: User, seed?: ProfileSeed): Users {
     role: seed?.role ?? 'funcionario',
     companyId: seed?.companyId ?? '',
     lojaId: seed?.lojaId ?? '',
+    is_super_admin: seed?.is_super_admin ?? false,
   }
 }
 
@@ -55,6 +59,7 @@ function toUserProfilePayload(profile: Users) {
     role: profile.role,
     company_id: profile.companyId || null,
     loja_id: profile.lojaId || null,
+    is_super_admin: profile.is_super_admin ?? false,
   }
 }
 

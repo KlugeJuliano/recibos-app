@@ -47,7 +47,8 @@ export const usuarios: Users[] = [
     lojaId: "loja1",
     name: "Juliano",
     role: "Gerente",
-    companyId: "company1"
+    companyId: "company1",
+    is_super_admin: true
   },
   {
     id: "u2",
@@ -55,7 +56,8 @@ export const usuarios: Users[] = [
     lojaId: "loja2",
     name: "Peão",
     role: "nehuma",
-    companyId: "company2"
+    companyId: "company2",
+    is_super_admin: false
   },
 ];
 

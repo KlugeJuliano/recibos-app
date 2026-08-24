@@ -22,10 +22,14 @@ export default function CompanyManagement() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [ownCompany, setOwnCompany] = useState<Company | null>(null);
   const [formData, setFormData] = useState<Omit<Company, 'id'> & {id?: string}>({
     name: '',
     cnpj: '',
   });
+  const [cnpjWarningShown, setCnpjWarningShown] = useState(false);
+  const [originalCnpj, setOriginalCnpj] = useState('');
 
   useEffect(() => {
     loadCompanies();
@@ -51,11 +55,15 @@ export default function CompanyManagement() {
       setCurrentUserId(user.id);
       const profile = await getUserProfile(supabase, user.id);
       if (profile?.companyId) {
+        setIsSuperAdmin(profile.is_super_admin ?? false);
         const plan = await CompanyRepository.getCompanyPlan(supabase, profile.companyId);
         setCompanyPlan(plan);
         const company = await CompanyRepository.findById(supabase, profile.companyId);
         if (company?.logo_url) {
           setLogoPreview(company.logo_url);
+        }
+        if (!isSuperAdmin) {
+          setOwnCompany(company);
         }
       }
     } catch (error) {
@@ -74,23 +82,33 @@ export default function CompanyManagement() {
       name: company.name,
       cnpj: company.cnpj
     });
+    setOriginalCnpj(company.cnpj);
+    setCnpjWarningShown(false);
   };
 
   // Handle form changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Show CNPJ warning toast on first change
+    if (name === 'cnpj' && !cnpjWarningShown && value !== originalCnpj) {
+      setGeneralError('Alterar o CNPJ pode afetar documentos fiscais e integrações');
+      setCnpjWarningShown(true);
+      // Clear warning after 5 seconds
+      setTimeout(() => setGeneralError(''), 5000);
+    }
   };
 
   // Format CNPJ input with mask
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    value = value.replace(/\D/g, '');
+    value = value.replace(new RegExp('\\D', 'g'), '');
     if (value.length <= 14) {
-      value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-      value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-      value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-      value = value.replace(/(\d{4})(\d)/, '$1-$2');
+      value = value.replace(new RegExp('^(\\d{2})(\\d)'), '$1.$2');
+      value = value.replace(new RegExp('^(\\d{2})\\.(\\d{3})(\\d)'), '$1.$2.$3');
+      value = value.replace(new RegExp('\\.(\\d{3})(\\d)'), '.$1/$2');
+      value = value.replace(new RegExp('(\\d{4})(\\d)'), '$1-$2');
     }
     setFormData(prev => ({ ...prev, cnpj: value }));
   };
@@ -120,7 +138,6 @@ export default function CompanyManagement() {
       console.error('Erro ao salvar empresa:', error);
       let message = 'Erro ao salvar empresa.';
       if (error instanceof Error) {
-        // Check for duplicate CNPJ error (PostgreSQL unique constraint violation)
         if (error.message.includes('23505') || error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
           message = 'Já existe uma empresa cadastrada com este CNPJ.';
         } else {
@@ -228,6 +245,8 @@ export default function CompanyManagement() {
     setIsModalOpen(false);
     setEditingCompany(null);
     setGeneralError('');
+    setCnpjWarningShown(false);
+    setOriginalCnpj('');
     setFormData({
       name: '',
       cnpj: '',
@@ -240,6 +259,8 @@ export default function CompanyManagement() {
     setEditingCompany(null);
     setActiveTab('dados');
     setGeneralError('');
+    setCnpjWarningShown(false);
+    setOriginalCnpj('');
     setFormData({
       name: '',
       cnpj: '',
@@ -248,11 +269,18 @@ export default function CompanyManagement() {
 
   const canUploadLogo = canAccessFeature(companyPlan, 'logo');
 
-  if (isLoading && companyList.length === 0) {
-    return <div className="p-8 text-center text-gray-500">Carregando empresas...</div>;
-  }
+  // Format CNPJ for display
+  const formatCNPJ = (cnpj: string) => {
+    if (!cnpj) return '';
+    const cleaned = cnpj.replace(new RegExp('\\D', 'g'), '');
+    if (cleaned.length === 14) {
+      return cleaned.replace(new RegExp('^(\\d{2})(\\d{3})(\\d{3})(\\d{4})(\\d{2})$'), '$1.$2.$3/$4-$5');
+    }
+    return cnpj;
+  };
 
-  return (
+  // Render Super-Admin Mode
+  const renderSuperAdminMode = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-800">Gerenciamento de Empresas</h2>
@@ -362,7 +390,7 @@ export default function CompanyManagement() {
                 {!canUploadLogo ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
                     <svg className="w-12 h-12 mx-auto text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
                     </svg>
                     <h4 className="mt-3 text-lg font-semibold text-amber-800">Logotipo disponível apenas no plano Pro</h4>
                     <p className="mt-2 text-amber-700">Faça upgrade para o plano Pro ou Business para adicionar o logotipo da sua empresa nos recibos PDF.</p>
@@ -419,4 +447,10 @@ export default function CompanyManagement() {
       )}
     </div>
   );
+
+  if (isLoading && companyList.length === 0) {
+    return <div className="p-8 text-center text-gray-500">Carregando empresas...</div>;
+  }
+
+  return isSuperAdmin ? renderSuperAdminMode() : <div>Regular Admin Mode</div>;
 }

@@ -11,6 +11,7 @@ type UserRow = {
   role?: string | null;
   company_id?: string | null;
   companyId?: string | null;
+  is_super_admin?: boolean | null;
 };
 
 function toUser(row: UserRow): Users {
@@ -21,6 +22,7 @@ function toUser(row: UserRow): Users {
     name: row.name ?? 'Usuário',
     role: row.role ?? 'funcionario',
     companyId: row.company_id ?? row.companyId ?? '',
+    is_super_admin: row.is_super_admin ?? false,
   };
 }
 
@@ -32,6 +34,7 @@ function toUserPayload(user: Users | Partial<Users>) {
     ...(user.name !== undefined ? { name: user.name } : {}),
     ...(user.role !== undefined ? { role: user.role } : {}),
     ...(user.companyId !== undefined ? { company_id: user.companyId || null } : {}),
+    ...(user.is_super_admin !== undefined ? { is_super_admin: user.is_super_admin } : {}),
   };
 }
 

@@ -13,15 +13,15 @@ export async function GET() {
   const { data, error } = await supabase
     .from('recibos')
     .select('*')
-    .eq('userId', user.id) // Validação de propriedade
-    .order('dataRecibo', { ascending: false });
+    .eq('user_id', user.id) // Validação de propriedade
+    .order('data_recibo', { ascending: false });
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
   const recibos = data ?? [];
-  const valorTotal = recibos.reduce((total, recibo) => total + Number(recibo.valorPagamento ?? recibo.valor ?? 0), 0);
+  const valorTotal = recibos.reduce((total, recibo) => total + Number(recibo.valor_pagamento ?? recibo.valor ?? 0), 0);
 
   return Response.json({
     totalRecibos: recibos.length,

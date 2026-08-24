@@ -42,7 +42,7 @@ export async function POST(
     .from('recibos')
     .select('*')
     .eq('id', id)
-    .eq('userId', user.id)
+    .eq('user_id', user.id)
     .single();
   if (error || !recibo) return Response.json({ error: 'Recibo não encontrado.' }, { status: 404 });
 
@@ -66,7 +66,7 @@ export async function POST(
     from: fromEmail,
     to: [toEmail],
     subject: `Seu recibo - ${company_name}`,
-    html: `<p>Olá,<br/><br/>Segue em anexo o recibo referente a <strong>${recibo.funcaoDesempenhada || 'serviços prestados'}</strong>.</p>`,
+    html: `<p>Olá,<br/><br/>Segue em anexo o recibo referente a <strong>${recibo.funcao_desempenhada || 'serviços prestados'}</strong>.</p>`,
     attachments: [{
       filename: `recibo-${id}.pdf`,
       content: Buffer.from(pdfBuffer),

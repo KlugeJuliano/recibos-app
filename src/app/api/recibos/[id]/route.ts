@@ -25,7 +25,7 @@ export async function GET(_request: Request, { params }: Params) {
     .from('recibos')
     .select('*')
     .eq('id', id)
-    .eq('userId', user.id) // Validação de propriedade
+    .eq('user_id', user.id) // Validação de propriedade
     .single();
 
   if (error) {
@@ -50,7 +50,7 @@ export async function PUT(request: Request, { params }: Params) {
     .from('recibos')
     .update(payload)
     .eq('id', id)
-    .eq('userId', user.id) // Validação de propriedade
+    .eq('user_id', user.id) // Validação de propriedade
     .select()
     .single();
 
@@ -73,7 +73,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .from('recibos')
     .delete()
     .eq('id', id)
-    .eq('userId', user.id); // Validação de propriedade
+    .eq('user_id', user.id); // Validação de propriedade
 
   if (error) {
     return Response.json({ error: 'Erro ao excluir ou acesso negado.' }, { status: 500 });

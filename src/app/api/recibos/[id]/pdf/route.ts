@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .from('recibos')
     .select('*')
     .eq('id', id)
-    .eq('userId', user.id) // Validação de propriedade
+    .eq('user_id', user.id) // Validação de propriedade
     .single();
 
   if (error || !data) {

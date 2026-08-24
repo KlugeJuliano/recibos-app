@@ -8,9 +8,9 @@ type ReciboRow = {
   id: string;
   name?: string;
   valor?: number;
-  valorPagamento?: number;
-  dataRecibo?: string;
-  funcaoDesempenhada?: string;
+  valor_pagamento?: number;
+  data_recibo?: string;
+  funcao_desempenhada?: string;
 };
 
 function currency(value?: number) {
@@ -30,16 +30,16 @@ function escapeHtml(value: unknown) {
 }
 
 function buildReportHtml(recibos: ReciboRow[]) {
-  const total = recibos.reduce((sum, recibo) => sum + Number(recibo.valorPagamento ?? recibo.valor ?? 0), 0);
+  const total = recibos.reduce((sum, recibo) => sum + Number(recibo.valor_pagamento ?? recibo.valor ?? 0), 0);
   const rows = recibos
     .map(
       (recibo) => `
         <tr>
           <td>${escapeHtml(recibo.id)}</td>
           <td>${escapeHtml(recibo.name)}</td>
-          <td>${escapeHtml(recibo.funcaoDesempenhada)}</td>
-          <td>${escapeHtml(recibo.dataRecibo)}</td>
-          <td class="right">${currency(recibo.valorPagamento ?? recibo.valor)}</td>
+          <td>${escapeHtml(recibo.funcao_desempenhada)}</td>
+          <td>${escapeHtml(recibo.data_recibo)}</td>
+          <td class="right">${currency(recibo.valor_pagamento ?? recibo.valor)}</td>
         </tr>
       `
     )
@@ -96,8 +96,8 @@ export async function GET(request: Request) {
   const { data, error } = await supabase
     .from('recibos')
     .select('*')
-    .eq('userId', user.id) // Validação de propriedade
-    .order('dataRecibo', { ascending: false });
+    .eq('user_id', user.id) // Validação de propriedade
+    .order('data_recibo', { ascending: false });
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
@@ -105,19 +105,19 @@ export async function GET(request: Request) {
 
   const recibos = (data ?? []) as ReciboRow[];
 
-  if (format === 'csv' || format === 'excel') {
+if (format === 'csv' || format === 'excel') {
     const csv = [
       'id,recebedor,referencia,data,valor',
       ...recibos.map((recibo) =>
         [
           recibo.id,
           recibo.name ?? '',
-          recibo.funcaoDesempenhada ?? '',
-          recibo.dataRecibo ?? '',
-          String(recibo.valorPagamento ?? recibo.valor ?? 0),
+          recibo.funcao_desempenhada ?? '',
+          recibo.data_recibo ?? '',
+          String(recibo.valor_pagamento ?? recibo.valor ?? 0),
         ]
-          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-          .join(',')
+        .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+        .join(',')
       ),
     ].join('\n');
 

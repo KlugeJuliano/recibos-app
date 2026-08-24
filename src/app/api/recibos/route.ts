@@ -16,8 +16,8 @@ export async function GET() {
   const { data, error } = await supabase
     .from('recibos')
     .select('*')
-    .eq('userId', user.id)
-    .order('dataRecibo', { ascending: false });
+    .eq('user_id', user.id)
+    .order('data_recibo', { ascending: false });
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
@@ -94,13 +94,14 @@ export async function POST(request: Request) {
     }
   }
 
+  // Limpar payload: remover chaves camelCase que não existem no banco
+  const { lojaId: _lojaId, userId: _userId, valorPagamento: _valorPagamento, ...cleanPayload } = payload;
   const recibo = {
-    ...payload,
+    ...cleanPayload,
     id: payload.id || crypto.randomUUID(),
-    userId: user.id,
-    lojaId,
+    user_id: user.id,
     loja_id: lojaId,
-    valorPagamento, // Sobrescreve com o valor calculado no servidor
+    valor_pagamento: valorPagamento,
     numero_sequencial,
   };
 

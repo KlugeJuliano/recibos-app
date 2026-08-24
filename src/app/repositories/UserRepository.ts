@@ -26,7 +26,7 @@ function toUser(row: UserRow): Users {
   };
 }
 
-function toUserPayload(user: Users | Partial<Users>) {
+export function toUserPayload(user: Users | Partial<Users>) {
   return {
     ...(user.id ? { id: user.id } : {}),
     ...(user.email !== undefined ? { email: user.email } : {}),

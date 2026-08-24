@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { isAdmin } from '@/utils/supabase/auth';
 import { getUserProfile } from '@/utils/supabase/profile';
 import { CompanyRepository } from '@/app/repositories/CompanyRepository';
+import { toStorePayload } from '@/app/repositories/StoreRepository';
 import { getCompanyPlan, canAccessFeature } from '@/app/lib/planGuard';
 
 type Params = {
@@ -34,19 +35,8 @@ export async function PUT(request: Request, { params }: Params) {
     return Response.json({ error: 'Empresa não encontrada.' }, { status: 404 });
   }
 
-  const plan = await getCompanyPlan(supabase, profile.companyId);
-
-  // Bloquear atualização de loja no plano Free (apenas 1 loja)
-  if (plan === 'free') {
-    const storeCount = await CompanyRepository.countStores(supabase, profile.companyId);
-    if (storeCount >= 1) {
-      return Response.json({ 
-        error: 'Plano Free permite apenas 1 loja. Faça upgrade para Pro ou Business para múltiplas lojas.' 
-      }, { status: 403 });
-    }
-  }
-
-  const payload = await request.json();
+  const rawPayload = await request.json();
+  const payload = toStorePayload(rawPayload);
   
   const { data, error } = await supabase
     .from('stores')

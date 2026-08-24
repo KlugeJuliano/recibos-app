@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { isAdmin } from '@/utils/supabase/auth';
 import { getUserProfile } from '@/utils/supabase/profile';
 import { CompanyRepository } from '@/app/repositories/CompanyRepository';
+import { toStorePayload } from '@/app/repositories/StoreRepository';
 import { getCompanyPlan, canAccessFeature } from '@/app/lib/planGuard';
 
 export async function GET() {
@@ -60,7 +61,8 @@ export async function POST(request: Request) {
     }
   }
 
-  const payload = await request.json();
+  const rawPayload = await request.json();
+  const payload = toStorePayload(rawPayload);
   
   const { data, error } = await supabase
     .from('stores')

@@ -1,7 +1,7 @@
 import { type SupabaseClient } from '@supabase/supabase-js';
 import { Loja } from '@/app/types';
 
-function toStorePayload(store: Partial<Loja>) {
+export function toStorePayload(store: Partial<Loja>) {
   return {
     ...(store.id ? { id: store.id } : {}),
     ...(store.loja !== undefined ? { loja: store.loja } : {}),
@@ -9,6 +9,7 @@ function toStorePayload(store: Partial<Loja>) {
     ...(store.companyId !== undefined ? { company_id: store.companyId || null } : {}),
     ...(store.address !== undefined ? { address: store.address } : {}),
     ...(store.phone !== undefined ? { phone: store.phone } : {}),
+    ...(store.sectors !== undefined ? { sectors: store.sectors } : {}),
   };
 }
 
